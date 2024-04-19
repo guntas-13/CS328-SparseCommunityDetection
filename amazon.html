@@ -1,0 +1,444 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 1080px;
+                 background-color: #ffffff;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+             #loadingBar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width: 100%;
+                 height: 1080px;
+                 background-color:rgba(200,200,200,0.8);
+                 -webkit-transition: all 0.5s ease;
+                 -moz-transition: all 0.5s ease;
+                 -ms-transition: all 0.5s ease;
+                 -o-transition: all 0.5s ease;
+                 transition: all 0.5s ease;
+                 opacity:1;
+             }
+
+             #bar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width:20px;
+                 height:20px;
+                 margin:auto auto auto auto;
+                 border-radius:11px;
+                 border:2px solid rgba(30,30,30,0.05);
+                 background: rgb(0, 173, 246); /* Old browsers */
+                 box-shadow: 2px 0px 4px rgba(0,0,0,0.4);
+             }
+
+             #border {
+                 position:absolute;
+                 top:10px;
+                 left:10px;
+                 width:500px;
+                 height:23px;
+                 margin:auto auto auto auto;
+                 box-shadow: 0px 0px 4px rgba(0,0,0,0.2);
+                 border-radius:10px;
+             }
+
+             #text {
+                 position:absolute;
+                 top:8px;
+                 left:530px;
+                 width:30px;
+                 height:50px;
+                 margin:auto auto auto auto;
+                 font-size:22px;
+                 color: #000000;
+             }
+
+             div.outerBorder {
+                 position:relative;
+                 top:400px;
+                 width:600px;
+                 height:44px;
+                 margin:auto auto auto auto;
+                 border:8px solid rgba(0,0,0,0.1);
+                 background: rgb(252,252,252); /* Old browsers */
+                 background: -moz-linear-gradient(top,  rgba(252,252,252,1) 0%, rgba(237,237,237,1) 100%); /* FF3.6+ */
+                 background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(252,252,252,1)), color-stop(100%,rgba(237,237,237,1))); /* Chrome,Safari4+ */
+                 background: -webkit-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Chrome10+,Safari5.1+ */
+                 background: -o-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Opera 11.10+ */
+                 background: -ms-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* IE10+ */
+                 background: linear-gradient(to bottom,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* W3C */
+                 filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#fcfcfc', endColorstr='#ededed',GradientType=0 ); /* IE6-9 */
+                 border-radius:72px;
+                 box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+             }
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+            <div id="loadingBar">
+              <div class="outerBorder">
+                <div id="text">0%</div>
+                <div id="border">
+                  <div id="bar"></div>
+                </div>
+              </div>
+            </div>
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#97c2fc", "community": 21958, "id": 1, "label": 1, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 29932, "id": 88160, "label": 88160, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 29932, "id": 118052, "label": 118052, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 29932, "id": 161555, "label": 161555, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 21958, "id": 244916, "label": 244916, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 14644, "id": 346495, "label": 346495, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 29932, "id": 444232, "label": 444232, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 14644, "id": 447165, "label": 447165, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 29932, "id": 500600, "label": 500600, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 29474, "id": 2, "label": 2, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 67915, "id": 27133, "label": 27133, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 64718, "id": 62291, "label": 62291, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 64718, "id": 170507, "label": 170507, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 64718, "id": 299250, "label": 299250, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 63016, "id": 326776, "label": 326776, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 64718, "id": 331042, "label": 331042, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 67915, "id": 411179, "label": 411179, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 29474, "id": 451149, "label": 451149, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 64718, "id": 454888, "label": 454888, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 61132, "id": 215555, "label": 215555, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 52045, "id": 46, "label": 46, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 51661, "id": 4, "label": 4, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 51661, "id": 16050, "label": 16050, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 51661, "id": 286286, "label": 286286, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 51661, "id": 310803, "label": 310803, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 51661, "id": 320519, "label": 320519, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 51661, "id": 408108, "label": 408108, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 51661, "id": 448284, "label": 448284, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 56450, "id": 5, "label": 5, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 56450, "id": 173362, "label": 173362, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 56450, "id": 305321, "label": 305321, "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 407216, "label": 407216, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 56450, "id": 489756, "label": 489756, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 63016, "id": 6, "label": 6, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 63016, "id": 162248, "label": 162248, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 74562, "id": 298989, "label": 298989, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 59673, "id": 398542, "label": 398542, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 71765, "id": 495077, "label": 495077, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 64601, "id": 7, "label": 7, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 74604, "id": 30028, "label": 30028, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 74604, "id": 47672, "label": 47672, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 64601, "id": 355935, "label": 355935, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 71166, "id": 8, "label": 8, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 49575, "id": 10758, "label": 10758, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 68263, "id": 55461, "label": 55461, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 27465, "id": 60605, "label": 60605, "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 148586, "label": 148586, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 63016, "id": 184847, "label": 184847, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 75035, "id": 242156, "label": 242156, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 71166, "id": 445607, "label": 445607, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 71166, "id": 453513, "label": 453513, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 68263, "id": 10, "label": 10, "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 80558, "label": 80558, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 65564, "id": 192929, "label": 192929, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 73080, "id": 266485, "label": 266485, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 75126, "id": 500235, "label": 500235, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 68263, "id": 504757, "label": 504757, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 4464, "id": 11, "label": 11, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 58080, "id": 57761, "label": 57761, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 69576, "id": 107436, "label": 107436, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 29105, "id": 400957, "label": 400957, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 60658, "id": 512424, "label": 512424, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 8422, "id": 12, "label": 12, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 48942, "id": 386032, "label": 386032, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 16421, "id": 15, "label": 15, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 16421, "id": 67084, "label": 67084, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 16421, "id": 85444, "label": 85444, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 14934, "id": 252980, "label": 252980, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 16421, "id": 422732, "label": 422732, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 14934, "id": 425706, "label": 425706, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 16421, "id": 428290, "label": 428290, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 59949, "id": 16, "label": 16, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 59949, "id": 128935, "label": 128935, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 59949, "id": 148997, "label": 148997, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 73080, "id": 422237, "label": 422237, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 19367, "id": 17, "label": 17, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 19367, "id": 18919, "label": 18919, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 51643, "id": 309780, "label": 309780, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 64601, "id": 18, "label": 18, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 64601, "id": 41174, "label": 41174, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 64601, "id": 45026, "label": 45026, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 64601, "id": 168895, "label": 168895, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 24931, "id": 19, "label": 19, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 24931, "id": 203677, "label": 203677, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 25450, "id": 20, "label": 20, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 72265, "id": 23251, "label": 23251, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 72266, "id": 25337, "label": 25337, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 72266, "id": 61306, "label": 61306, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 72266, "id": 186932, "label": 186932, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 30351, "id": 218984, "label": 218984, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 72266, "id": 412652, "label": 412652, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 27390, "id": 450610, "label": 450610, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 30351, "id": 476125, "label": 476125, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 28327, "id": 21, "label": 21, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 69617, "id": 17723, "label": 17723, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 59104, "id": 50332, "label": 50332, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 69617, "id": 62691, "label": 62691, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 73946, "id": 96553, "label": 96553, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 75057, "id": 114681, "label": 114681, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 30026, "id": 152202, "label": 152202, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 69617, "id": 166829, "label": 166829, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 27465, "id": 184384, "label": 184384, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 27465, "id": 198272, "label": 198272, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 27465, "id": 234603, "label": 234603, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 27465, "id": 297444, "label": 297444, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 27465, "id": 320969, "label": 320969, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 27465, "id": 340707, "label": 340707, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 27465, "id": 421307, "label": 421307, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 59104, "id": 505568, "label": 505568, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 58660, "id": 528460, "label": 528460, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 72649, "id": 536600, "label": 536600, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 74492, "id": 538669, "label": 538669, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 73946, "id": 545557, "label": 545557, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 69617, "id": 547758, "label": 547758, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 64601, "id": 22, "label": 22, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 64601, "id": 444558, "label": 444558, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 64601, "id": 511266, "label": 511266, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 64601, "id": 531052, "label": 531052, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 63016, "id": 25, "label": 25, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 63016, "id": 329631, "label": 329631, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 63016, "id": 483212, "label": 483212, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 63016, "id": 517449, "label": 517449, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 35122, "id": 26, "label": 26, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 73492, "id": 95368, "label": 95368, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 73492, "id": 295866, "label": 295866, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 60773, "id": 309111, "label": 309111, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 54326, "id": 393249, "label": 393249, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 54326, "id": 410291, "label": 410291, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 54326, "id": 439826, "label": 439826, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 60773, "id": 486444, "label": 486444, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 63016, "id": 27, "label": 27, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 59875, "id": 172631, "label": 172631, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 63016, "id": 385665, "label": 385665, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 50279, "id": 483393, "label": 483393, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13208, "id": 28, "label": 28, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 63642, "id": 319831, "label": 319831, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 60182, "id": 444973, "label": 444973, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 38248, "id": 29, "label": 29, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 25450, "id": 56517, "label": 56517, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 25154, "id": 103486, "label": 103486, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 25450, "id": 247356, "label": 247356, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 41341, "id": 254470, "label": 254470, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 41341, "id": 260536, "label": 260536, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 41341, "id": 321434, "label": 321434, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 74136, "id": 425568, "label": 425568, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 25450, "id": 515736, "label": 515736, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 40795, "id": 31, "label": 31, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 40788, "id": 85159, "label": 85159, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 49034, "id": 199627, "label": 199627, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 41158, "id": 32, "label": 32, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 40133, "id": 207011, "label": 207011, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 7180, "id": 270841, "label": 270841, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 66722, "id": 333027, "label": 333027, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 61757, "id": 362777, "label": 362777, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 64601, "id": 34, "label": 34, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 64601, "id": 48917, "label": 48917, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 64601, "id": 99853, "label": 99853, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 64601, "id": 197152, "label": 197152, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 43839, "id": 35, "label": 35, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 43839, "id": 350166, "label": 350166, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 43839, "id": 476108, "label": 476108, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 34499, "id": 519941, "label": 519941, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 46631, "id": 38, "label": 38, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 67815, "id": 84467, "label": 84467, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 63016, "id": 284568, "label": 284568, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 46631, "id": 458709, "label": 458709, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 63016, "id": 511273, "label": 511273, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 62073, "id": 517189, "label": 517189, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 47458, "id": 39, "label": 39, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 47458, "id": 150250, "label": 150250, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 47458, "id": 301347, "label": 301347, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 47458, "id": 339797, "label": 339797, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 47458, "id": 412517, "label": 412517, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 47458, "id": 438351, "label": 438351, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 47458, "id": 498615, "label": 498615, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 47458, "id": 517966, "label": 517966, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 49575, "id": 42, "label": 42, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 49574, "id": 38007, "label": 38007, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 49575, "id": 165211, "label": 165211, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 49575, "id": 202132, "label": 202132, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 49575, "id": 386937, "label": 386937, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 49575, "id": 408165, "label": 408165, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 49575, "id": 546773, "label": 546773, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 50286, "id": 43, "label": 43, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 58355, "id": 6893, "label": 6893, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 50285, "id": 12433, "label": 12433, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 69079, "id": 30022, "label": 30022, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 58355, "id": 126893, "label": 126893, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 50286, "id": 188277, "label": 188277, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 50285, "id": 231040, "label": 231040, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 69079, "id": 308852, "label": 308852, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 50285, "id": 375902, "label": 375902, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 50286, "id": 439652, "label": 439652, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 51401, "id": 45, "label": 45, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 51401, "id": 3604, "label": 3604, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 51401, "id": 28318, "label": 28318, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 51401, "id": 179783, "label": 179783, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 74007, "id": 219010, "label": 219010, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 51401, "id": 296035, "label": 296035, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 51401, "id": 477337, "label": 477337, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 51401, "id": 490336, "label": 490336, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 51401, "id": 521170, "label": 521170, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 51401, "id": 537362, "label": 537362, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 51811, "id": 109564, "label": 109564, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 69867, "id": 352870, "label": 352870, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 51735, "id": 360354, "label": 360354, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 52045, "id": 376880, "label": 376880, "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 49, "label": 49, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 64601, "id": 11762, "label": 11762, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 64601, "id": 157925, "label": 157925, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 64601, "id": 50, "label": 50, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 64601, "id": 70372, "label": 70372, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 64601, "id": 104763, "label": 104763, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 64601, "id": 243355, "label": 243355, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 14644, "id": 51, "label": 51, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 14644, "id": 178863, "label": 178863, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 14644, "id": 268283, "label": 268283, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 14644, "id": 300840, "label": 300840, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 73773, "id": 313180, "label": 313180, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 29932, "id": 360901, "label": 360901, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 29932, "id": 511008, "label": 511008, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 73773, "id": 521089, "label": 521089, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 63016, "id": 52, "label": 52, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 63016, "id": 298828, "label": 298828, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 55077, "id": 302996, "label": 302996, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 64965, "id": 395615, "label": 395615, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 56595, "id": 54, "label": 54, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 56595, "id": 144283, "label": 144283, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 56595, "id": 178505, "label": 178505, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 55998, "id": 225433, "label": 225433, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 56595, "id": 418374, "label": 418374, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 56595, "id": 529701, "label": 529701, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 59104, "id": 59, "label": 59, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 59104, "id": 30925, "label": 30925, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 72471, "id": 194736, "label": 194736, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 55336, "id": 262789, "label": 262789, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 75105, "id": 277265, "label": 277265, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 59104, "id": 340052, "label": 340052, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 59104, "id": 431010, "label": 431010, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 59104, "id": 481267, "label": 481267, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 59104, "id": 491807, "label": 491807, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 59104, "id": 531181, "label": 531181, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 59344, "id": 60, "label": 60, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 59344, "id": 120137, "label": 120137, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 59344, "id": 127781, "label": 127781, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 59344, "id": 252349, "label": 252349, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 59344, "id": 276685, "label": 276685, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 59344, "id": 355095, "label": 355095, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 59344, "id": 392511, "label": 392511, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 59344, "id": 466296, "label": 466296, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 59344, "id": 488649, "label": 488649, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 59344, "id": 514374, "label": 514374, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 60565, "id": 62, "label": 62, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 72800, "id": 13426, "label": 13426, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 65314, "id": 73614, "label": 73614, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 72801, "id": 453178, "label": 453178, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 72800, "id": 454199, "label": 454199, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 60565, "id": 478204, "label": 478204, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 60960, "id": 63, "label": 63, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 60780, "id": 193813, "label": 193813, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 60960, "id": 194827, "label": 194827, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 60736, "id": 405294, "label": 405294, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 60736, "id": 535431, "label": 535431, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 61314, "id": 64, "label": 64, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 61181, "id": 269856, "label": 269856, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 61253, "id": 328229, "label": 328229, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 61253, "id": 355213, "label": 355213, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 61181, "id": 383692, "label": 383692, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 66491, "id": 484789, "label": 484789, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 66491, "id": 509737, "label": 509737, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 62376, "id": 66, "label": 66, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 62376, "id": 229430, "label": 229430, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 62376, "id": 282913, "label": 282913, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 62376, "id": 362264, "label": 362264, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 64965, "id": 72, "label": 72, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 64718, "id": 21052, "label": 21052, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 64965, "id": 45272, "label": 45272, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 51221, "id": 108832, "label": 108832, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 64965, "id": 481740, "label": 481740, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 64965, "id": 528886, "label": 528886, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 65234, "id": 73, "label": 73, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 65231, "id": 261014, "label": 261014, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 67915, "id": 232063, "label": 232063, "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 68, "label": 68, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 39059, "id": 275750, "label": 275750, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 40428, "id": 321438, "label": 321438, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 40428, "id": 375036, "label": 375036, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 39059, "id": 385226, "label": 385226, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 40428, "id": 423059, "label": 423059, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 74222, "id": 456407, "label": 456407, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 63547, "id": 69, "label": 69, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 63016, "id": 247778, "label": 247778, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 63547, "id": 277220, "label": 277220, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 46631, "id": 14115, "label": 14115, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 62073, "id": 65, "label": 65, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 59949, "id": 537914, "label": 537914, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 67326, "id": 78654, "label": 78654, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 46303, "id": 409571, "label": 409571, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 63547, "id": 267166, "label": 267166, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 74561, "id": 507834, "label": 507834, "shape": "dot", "size": 10}]);
+                  edges = new vis.DataSet([{"from": 1, "to": 88160, "width": 1}, {"from": 1, "to": 118052, "width": 1}, {"from": 1, "to": 161555, "width": 1}, {"from": 1, "to": 244916, "width": 1}, {"from": 1, "to": 346495, "width": 1}, {"from": 1, "to": 444232, "width": 1}, {"from": 1, "to": 447165, "width": 1}, {"from": 1, "to": 500600, "width": 1}, {"from": 2, "to": 27133, "width": 1}, {"from": 2, "to": 62291, "width": 1}, {"from": 2, "to": 170507, "width": 1}, {"from": 2, "to": 299250, "width": 1}, {"from": 2, "to": 326776, "width": 1}, {"from": 2, "to": 331042, "width": 1}, {"from": 2, "to": 411179, "width": 1}, {"from": 2, "to": 451149, "width": 1}, {"from": 2, "to": 454888, "width": 1}, {"from": 215555, "to": 46, "width": 1}, {"from": 4, "to": 16050, "width": 1}, {"from": 4, "to": 286286, "width": 1}, {"from": 4, "to": 310803, "width": 1}, {"from": 4, "to": 320519, "width": 1}, {"from": 4, "to": 408108, "width": 1}, {"from": 4, "to": 448284, "width": 1}, {"from": 5, "to": 173362, "width": 1}, {"from": 5, "to": 305321, "width": 1}, {"from": 5, "to": 407216, "width": 1}, {"from": 5, "to": 489756, "width": 1}, {"from": 6, "to": 162248, "width": 1}, {"from": 6, "to": 298989, "width": 1}, {"from": 6, "to": 398542, "width": 1}, {"from": 6, "to": 495077, "width": 1}, {"from": 320519, "to": 16050, "width": 1}, {"from": 320519, "to": 310803, "width": 1}, {"from": 320519, "to": 408108, "width": 1}, {"from": 7, "to": 30028, "width": 1}, {"from": 7, "to": 47672, "width": 1}, {"from": 7, "to": 355935, "width": 1}, {"from": 8, "to": 10758, "width": 1}, {"from": 8, "to": 55461, "width": 1}, {"from": 8, "to": 60605, "width": 1}, {"from": 8, "to": 148586, "width": 1}, {"from": 8, "to": 184847, "width": 1}, {"from": 8, "to": 242156, "width": 1}, {"from": 8, "to": 445607, "width": 1}, {"from": 8, "to": 453513, "width": 1}, {"from": 10758, "to": 148586, "width": 1}, {"from": 10758, "to": 445607, "width": 1}, {"from": 10758, "to": 453513, "width": 1}, {"from": 170507, "to": 27133, "width": 1}, {"from": 170507, "to": 62291, "width": 1}, {"from": 170507, "to": 299250, "width": 1}, {"from": 170507, "to": 411179, "width": 1}, {"from": 170507, "to": 454888, "width": 1}, {"from": 10, "to": 80558, "width": 1}, {"from": 10, "to": 192929, "width": 1}, {"from": 10, "to": 266485, "width": 1}, {"from": 10, "to": 500235, "width": 1}, {"from": 10, "to": 504757, "width": 1}, {"from": 500235, "to": 80558, "width": 1}, {"from": 500235, "to": 192929, "width": 1}, {"from": 500235, "to": 266485, "width": 1}, {"from": 500235, "to": 504757, "width": 1}, {"from": 11, "to": 57761, "width": 1}, {"from": 11, "to": 107436, "width": 1}, {"from": 11, "to": 400957, "width": 1}, {"from": 11, "to": 512424, "width": 1}, {"from": 184847, "to": 55461, "width": 1}, {"from": 12, "to": 386032, "width": 1}, {"from": 15, "to": 67084, "width": 1}, {"from": 15, "to": 85444, "width": 1}, {"from": 15, "to": 252980, "width": 1}, {"from": 15, "to": 422732, "width": 1}, {"from": 15, "to": 425706, "width": 1}, {"from": 15, "to": 428290, "width": 1}, {"from": 67084, "to": 85444, "width": 1}, {"from": 67084, "to": 252980, "width": 1}, {"from": 67084, "to": 422732, "width": 1}, {"from": 67084, "to": 425706, "width": 1}, {"from": 67084, "to": 428290, "width": 1}, {"from": 310803, "to": 408108, "width": 1}, {"from": 310803, "to": 448284, "width": 1}, {"from": 16, "to": 128935, "width": 1}, {"from": 16, "to": 148997, "width": 1}, {"from": 16, "to": 422237, "width": 1}, {"from": 17, "to": 18919, "width": 1}, {"from": 17, "to": 309780, "width": 1}, {"from": 309780, "to": 18919, "width": 1}, {"from": 18, "to": 41174, "width": 1}, {"from": 18, "to": 45026, "width": 1}, {"from": 18, "to": 168895, "width": 1}, {"from": 19, "to": 203677, "width": 1}, {"from": 20, "to": 23251, "width": 1}, {"from": 20, "to": 25337, "width": 1}, {"from": 20, "to": 61306, "width": 1}, {"from": 20, "to": 186932, "width": 1}, {"from": 20, "to": 218984, "width": 1}, {"from": 20, "to": 412652, "width": 1}, {"from": 20, "to": 450610, "width": 1}, {"from": 20, "to": 476125, "width": 1}, {"from": 21, "to": 17723, "width": 1}, {"from": 21, "to": 50332, "width": 1}, {"from": 21, "to": 62691, "width": 1}, {"from": 21, "to": 96553, "width": 1}, {"from": 21, "to": 114681, "width": 1}, {"from": 21, "to": 152202, "width": 1}, {"from": 21, "to": 166829, "width": 1}, {"from": 21, "to": 184384, "width": 1}, {"from": 21, "to": 198272, "width": 1}, {"from": 21, "to": 234603, "width": 1}, {"from": 21, "to": 297444, "width": 1}, {"from": 21, "to": 320969, "width": 1}, {"from": 21, "to": 340707, "width": 1}, {"from": 21, "to": 421307, "width": 1}, {"from": 21, "to": 505568, "width": 1}, {"from": 21, "to": 528460, "width": 1}, {"from": 21, "to": 536600, "width": 1}, {"from": 21, "to": 538669, "width": 1}, {"from": 21, "to": 545557, "width": 1}, {"from": 21, "to": 547758, "width": 1}, {"from": 22, "to": 444558, "width": 1}, {"from": 22, "to": 511266, "width": 1}, {"from": 22, "to": 531052, "width": 1}, {"from": 25, "to": 329631, "width": 1}, {"from": 25, "to": 483212, "width": 1}, {"from": 25, "to": 517449, "width": 1}, {"from": 26, "to": 95368, "width": 1}, {"from": 26, "to": 295866, "width": 1}, {"from": 26, "to": 309111, "width": 1}, {"from": 26, "to": 393249, "width": 1}, {"from": 26, "to": 410291, "width": 1}, {"from": 26, "to": 439826, "width": 1}, {"from": 26, "to": 486444, "width": 1}, {"from": 27, "to": 172631, "width": 1}, {"from": 27, "to": 385665, "width": 1}, {"from": 27, "to": 483393, "width": 1}, {"from": 28, "to": 319831, "width": 1}, {"from": 28, "to": 444973, "width": 1}, {"from": 393249, "to": 95368, "width": 1}, {"from": 393249, "to": 295866, "width": 1}, {"from": 393249, "to": 486444, "width": 1}, {"from": 29, "to": 56517, "width": 1}, {"from": 29, "to": 103486, "width": 1}, {"from": 29, "to": 247356, "width": 1}, {"from": 29, "to": 254470, "width": 1}, {"from": 29, "to": 260536, "width": 1}, {"from": 29, "to": 321434, "width": 1}, {"from": 29, "to": 425568, "width": 1}, {"from": 29, "to": 515736, "width": 1}, {"from": 31, "to": 85159, "width": 1}, {"from": 31, "to": 199627, "width": 1}, {"from": 32, "to": 207011, "width": 1}, {"from": 32, "to": 270841, "width": 1}, {"from": 32, "to": 333027, "width": 1}, {"from": 32, "to": 362777, "width": 1}, {"from": 34, "to": 48917, "width": 1}, {"from": 34, "to": 99853, "width": 1}, {"from": 34, "to": 197152, "width": 1}, {"from": 197152, "to": 48917, "width": 1}, {"from": 197152, "to": 99853, "width": 1}, {"from": 35, "to": 350166, "width": 1}, {"from": 35, "to": 476108, "width": 1}, {"from": 35, "to": 519941, "width": 1}, {"from": 38, "to": 84467, "width": 1}, {"from": 38, "to": 284568, "width": 1}, {"from": 38, "to": 458709, "width": 1}, {"from": 38, "to": 511273, "width": 1}, {"from": 38, "to": 517189, "width": 1}, {"from": 39, "to": 150250, "width": 1}, {"from": 39, "to": 301347, "width": 1}, {"from": 39, "to": 339797, "width": 1}, {"from": 39, "to": 412517, "width": 1}, {"from": 39, "to": 438351, "width": 1}, {"from": 39, "to": 498615, "width": 1}, {"from": 39, "to": 517966, "width": 1}, {"from": 42, "to": 38007, "width": 1}, {"from": 42, "to": 165211, "width": 1}, {"from": 42, "to": 202132, "width": 1}, {"from": 42, "to": 386937, "width": 1}, {"from": 42, "to": 408165, "width": 1}, {"from": 42, "to": 546773, "width": 1}, {"from": 411179, "to": 27133, "width": 1}, {"from": 411179, "to": 62291, "width": 1}, {"from": 411179, "to": 299250, "width": 1}, {"from": 411179, "to": 331042, "width": 1}, {"from": 411179, "to": 451149, "width": 1}, {"from": 411179, "to": 454888, "width": 1}, {"from": 408108, "to": 16050, "width": 1}, {"from": 408108, "to": 286286, "width": 1}, {"from": 408108, "to": 448284, "width": 1}, {"from": 538669, "to": 114681, "width": 1}, {"from": 538669, "to": 234603, "width": 1}, {"from": 538669, "to": 421307, "width": 1}, {"from": 538669, "to": 505568, "width": 1}, {"from": 538669, "to": 528460, "width": 1}, {"from": 486444, "to": 95368, "width": 1}, {"from": 486444, "to": 410291, "width": 1}, {"from": 43, "to": 6893, "width": 1}, {"from": 43, "to": 12433, "width": 1}, {"from": 43, "to": 30022, "width": 1}, {"from": 43, "to": 126893, "width": 1}, {"from": 43, "to": 188277, "width": 1}, {"from": 43, "to": 231040, "width": 1}, {"from": 43, "to": 308852, "width": 1}, {"from": 43, "to": 375902, "width": 1}, {"from": 43, "to": 439652, "width": 1}, {"from": 45, "to": 3604, "width": 1}, {"from": 45, "to": 28318, "width": 1}, {"from": 45, "to": 179783, "width": 1}, {"from": 45, "to": 219010, "width": 1}, {"from": 45, "to": 296035, "width": 1}, {"from": 45, "to": 477337, "width": 1}, {"from": 45, "to": 490336, "width": 1}, {"from": 45, "to": 521170, "width": 1}, {"from": 45, "to": 537362, "width": 1}, {"from": 450610, "to": 25337, "width": 1}, {"from": 450610, "to": 186932, "width": 1}, {"from": 450610, "to": 412652, "width": 1}, {"from": 46, "to": 109564, "width": 1}, {"from": 46, "to": 352870, "width": 1}, {"from": 46, "to": 360354, "width": 1}, {"from": 46, "to": 376880, "width": 1}, {"from": 252980, "to": 85444, "width": 1}, {"from": 252980, "to": 422732, "width": 1}, {"from": 252980, "to": 428290, "width": 1}, {"from": 186932, "to": 25337, "width": 1}, {"from": 186932, "to": 61306, "width": 1}, {"from": 186932, "to": 412652, "width": 1}, {"from": 49, "to": 11762, "width": 1}, {"from": 49, "to": 157925, "width": 1}, {"from": 47672, "to": 30028, "width": 1}, {"from": 50, "to": 70372, "width": 1}, {"from": 50, "to": 104763, "width": 1}, {"from": 50, "to": 243355, "width": 1}, {"from": 51, "to": 178863, "width": 1}, {"from": 51, "to": 268283, "width": 1}, {"from": 51, "to": 300840, "width": 1}, {"from": 51, "to": 313180, "width": 1}, {"from": 51, "to": 360901, "width": 1}, {"from": 51, "to": 511008, "width": 1}, {"from": 51, "to": 521089, "width": 1}, {"from": 52, "to": 298828, "width": 1}, {"from": 52, "to": 302996, "width": 1}, {"from": 52, "to": 395615, "width": 1}, {"from": 247356, "to": 103486, "width": 1}, {"from": 400957, "to": 107436, "width": 1}, {"from": 103486, "to": 56517, "width": 1}, {"from": 103486, "to": 515736, "width": 1}, {"from": 54, "to": 144283, "width": 1}, {"from": 54, "to": 178505, "width": 1}, {"from": 54, "to": 225433, "width": 1}, {"from": 54, "to": 418374, "width": 1}, {"from": 54, "to": 529701, "width": 1}, {"from": 59, "to": 30925, "width": 1}, {"from": 59, "to": 194736, "width": 1}, {"from": 59, "to": 262789, "width": 1}, {"from": 59, "to": 277265, "width": 1}, {"from": 59, "to": 340052, "width": 1}, {"from": 59, "to": 431010, "width": 1}, {"from": 59, "to": 481267, "width": 1}, {"from": 59, "to": 491807, "width": 1}, {"from": 59, "to": 531181, "width": 1}, {"from": 60, "to": 120137, "width": 1}, {"from": 60, "to": 127781, "width": 1}, {"from": 60, "to": 252349, "width": 1}, {"from": 60, "to": 276685, "width": 1}, {"from": 60, "to": 355095, "width": 1}, {"from": 60, "to": 392511, "width": 1}, {"from": 60, "to": 466296, "width": 1}, {"from": 60, "to": 488649, "width": 1}, {"from": 60, "to": 514374, "width": 1}, {"from": 62, "to": 13426, "width": 1}, {"from": 62, "to": 73614, "width": 1}, {"from": 62, "to": 453178, "width": 1}, {"from": 62, "to": 454199, "width": 1}, {"from": 62, "to": 478204, "width": 1}, {"from": 517189, "to": 458709, "width": 1}, {"from": 517189, "to": 511273, "width": 1}, {"from": 418374, "to": 144283, "width": 1}, {"from": 418374, "to": 178505, "width": 1}, {"from": 418374, "to": 225433, "width": 1}, {"from": 418374, "to": 529701, "width": 1}, {"from": 179783, "to": 28318, "width": 1}, {"from": 179783, "to": 521170, "width": 1}, {"from": 63, "to": 193813, "width": 1}, {"from": 63, "to": 194827, "width": 1}, {"from": 63, "to": 405294, "width": 1}, {"from": 63, "to": 535431, "width": 1}, {"from": 64, "to": 269856, "width": 1}, {"from": 64, "to": 328229, "width": 1}, {"from": 64, "to": 355213, "width": 1}, {"from": 64, "to": 383692, "width": 1}, {"from": 64, "to": 484789, "width": 1}, {"from": 64, "to": 509737, "width": 1}, {"from": 66, "to": 229430, "width": 1}, {"from": 66, "to": 282913, "width": 1}, {"from": 66, "to": 362264, "width": 1}, {"from": 528460, "to": 96553, "width": 1}, {"from": 528460, "to": 114681, "width": 1}, {"from": 451149, "to": 62291, "width": 1}, {"from": 451149, "to": 331042, "width": 1}, {"from": 438351, "to": 150250, "width": 1}, {"from": 438351, "to": 301347, "width": 1}, {"from": 438351, "to": 339797, "width": 1}, {"from": 438351, "to": 412517, "width": 1}, {"from": 438351, "to": 498615, "width": 1}, {"from": 438351, "to": 517966, "width": 1}, {"from": 478204, "to": 453178, "width": 1}, {"from": 478204, "to": 454199, "width": 1}, {"from": 72, "to": 21052, "width": 1}, {"from": 72, "to": 45272, "width": 1}, {"from": 72, "to": 108832, "width": 1}, {"from": 72, "to": 481740, "width": 1}, {"from": 72, "to": 528886, "width": 1}, {"from": 73, "to": 261014, "width": 1}, {"from": 340052, "to": 277265, "width": 1}, {"from": 375902, "to": 12433, "width": 1}, {"from": 375902, "to": 30022, "width": 1}, {"from": 375902, "to": 126893, "width": 1}, {"from": 375902, "to": 308852, "width": 1}, {"from": 88160, "to": 161555, "width": 1}, {"from": 88160, "to": 346495, "width": 1}, {"from": 425568, "to": 254470, "width": 1}, {"from": 234603, "to": 545557, "width": 1}, {"from": 531052, "to": 444558, "width": 1}, {"from": 13426, "to": 73614, "width": 1}, {"from": 13426, "to": 454199, "width": 1}, {"from": 453178, "to": 73614, "width": 1}, {"from": 326776, "to": 62291, "width": 1}, {"from": 232063, "to": 68, "width": 1}, {"from": 232063, "to": 275750, "width": 1}, {"from": 232063, "to": 321438, "width": 1}, {"from": 232063, "to": 375036, "width": 1}, {"from": 232063, "to": 385226, "width": 1}, {"from": 454199, "to": 73614, "width": 1}, {"from": 95368, "to": 295866, "width": 1}, {"from": 95368, "to": 439826, "width": 1}, {"from": 12433, "to": 6893, "width": 1}, {"from": 12433, "to": 30022, "width": 1}, {"from": 12433, "to": 126893, "width": 1}, {"from": 423059, "to": 68, "width": 1}, {"from": 423059, "to": 275750, "width": 1}, {"from": 423059, "to": 321438, "width": 1}, {"from": 423059, "to": 375036, "width": 1}, {"from": 423059, "to": 385226, "width": 1}, {"from": 477337, "to": 28318, "width": 1}, {"from": 243355, "to": 104763, "width": 1}, {"from": 50332, "to": 17723, "width": 1}, {"from": 50332, "to": 114681, "width": 1}, {"from": 207011, "to": 270841, "width": 1}, {"from": 445607, "to": 453513, "width": 1}, {"from": 305321, "to": 173362, "width": 1}, {"from": 305321, "to": 407216, "width": 1}, {"from": 305321, "to": 489756, "width": 1}, {"from": 80558, "to": 192929, "width": 1}, {"from": 80558, "to": 266485, "width": 1}, {"from": 178863, "to": 300840, "width": 1}, {"from": 178863, "to": 360901, "width": 1}, {"from": 178863, "to": 511008, "width": 1}, {"from": 407216, "to": 173362, "width": 1}, {"from": 407216, "to": 489756, "width": 1}, {"from": 194736, "to": 277265, "width": 1}, {"from": 16050, "to": 448284, "width": 1}, {"from": 410291, "to": 295866, "width": 1}, {"from": 410291, "to": 439826, "width": 1}, {"from": 244916, "to": 118052, "width": 1}, {"from": 244916, "to": 161555, "width": 1}, {"from": 244916, "to": 447165, "width": 1}, {"from": 244916, "to": 500600, "width": 1}, {"from": 447165, "to": 161555, "width": 1}, {"from": 60605, "to": 453513, "width": 1}, {"from": 488649, "to": 120137, "width": 1}, {"from": 488649, "to": 252349, "width": 1}, {"from": 488649, "to": 276685, "width": 1}, {"from": 385226, "to": 68, "width": 1}, {"from": 385226, "to": 275750, "width": 1}, {"from": 385226, "to": 321438, "width": 1}, {"from": 328229, "to": 269856, "width": 1}, {"from": 328229, "to": 355213, "width": 1}, {"from": 398542, "to": 162248, "width": 1}, {"from": 276685, "to": 120137, "width": 1}, {"from": 276685, "to": 127781, "width": 1}, {"from": 23251, "to": 218984, "width": 1}, {"from": 456407, "to": 69, "width": 1}, {"from": 456407, "to": 247778, "width": 1}, {"from": 456407, "to": 277220, "width": 1}, {"from": 45272, "to": 21052, "width": 1}, {"from": 45272, "to": 108832, "width": 1}, {"from": 45272, "to": 481740, "width": 1}, {"from": 45272, "to": 528886, "width": 1}, {"from": 505568, "to": 17723, "width": 1}, {"from": 505568, "to": 114681, "width": 1}, {"from": 340707, "to": 17723, "width": 1}, {"from": 340707, "to": 114681, "width": 1}, {"from": 157925, "to": 11762, "width": 1}, {"from": 70372, "to": 104763, "width": 1}, {"from": 454888, "to": 62291, "width": 1}, {"from": 454888, "to": 299250, "width": 1}, {"from": 454888, "to": 331042, "width": 1}, {"from": 277220, "to": 69, "width": 1}, {"from": 425706, "to": 85444, "width": 1}, {"from": 425706, "to": 422732, "width": 1}, {"from": 425706, "to": 428290, "width": 1}, {"from": 150250, "to": 301347, "width": 1}, {"from": 150250, "to": 339797, "width": 1}, {"from": 150250, "to": 412517, "width": 1}, {"from": 150250, "to": 517966, "width": 1}, {"from": 6893, "to": 30022, "width": 1}, {"from": 6893, "to": 126893, "width": 1}, {"from": 531181, "to": 431010, "width": 1}, {"from": 299250, "to": 62291, "width": 1}, {"from": 299250, "to": 331042, "width": 1}, {"from": 266485, "to": 192929, "width": 1}, {"from": 266485, "to": 504757, "width": 1}, {"from": 25337, "to": 412652, "width": 1}, {"from": 375036, "to": 68, "width": 1}, {"from": 375036, "to": 275750, "width": 1}, {"from": 375036, "to": 321438, "width": 1}, {"from": 428290, "to": 85444, "width": 1}, {"from": 428290, "to": 422732, "width": 1}, {"from": 511008, "to": 360901, "width": 1}, {"from": 194827, "to": 193813, "width": 1}, {"from": 194827, "to": 405294, "width": 1}, {"from": 277265, "to": 481267, "width": 1}, {"from": 161555, "to": 118052, "width": 1}, {"from": 161555, "to": 346495, "width": 1}, {"from": 161555, "to": 500600, "width": 1}, {"from": 545557, "to": 17723, "width": 1}, {"from": 545557, "to": 96553, "width": 1}, {"from": 545557, "to": 114681, "width": 1}, {"from": 545557, "to": 297444, "width": 1}, {"from": 545557, "to": 547758, "width": 1}, {"from": 355095, "to": 466296, "width": 1}, {"from": 355095, "to": 514374, "width": 1}, {"from": 362264, "to": 282913, "width": 1}, {"from": 489756, "to": 173362, "width": 1}, {"from": 108832, "to": 21052, "width": 1}, {"from": 108832, "to": 481740, "width": 1}, {"from": 108832, "to": 528886, "width": 1}, {"from": 331042, "to": 62291, "width": 1}, {"from": 118052, "to": 444232, "width": 1}, {"from": 118052, "to": 500600, "width": 1}, {"from": 301347, "to": 339797, "width": 1}, {"from": 301347, "to": 412517, "width": 1}, {"from": 301347, "to": 498615, "width": 1}, {"from": 301347, "to": 517966, "width": 1}, {"from": 529701, "to": 178505, "width": 1}, {"from": 127781, "to": 120137, "width": 1}, {"from": 127781, "to": 252349, "width": 1}, {"from": 127781, "to": 392511, "width": 1}, {"from": 127781, "to": 466296, "width": 1}, {"from": 127781, "to": 514374, "width": 1}, {"from": 96553, "to": 17723, "width": 1}, {"from": 96553, "to": 297444, "width": 1}, {"from": 96553, "to": 547758, "width": 1}, {"from": 511273, "to": 84467, "width": 1}, {"from": 511273, "to": 284568, "width": 1}, {"from": 511273, "to": 458709, "width": 1}, {"from": 509737, "to": 269856, "width": 1}, {"from": 509737, "to": 355213, "width": 1}, {"from": 509737, "to": 484789, "width": 1}, {"from": 14115, "to": 65, "width": 1}, {"from": 275750, "to": 68, "width": 1}, {"from": 275750, "to": 321438, "width": 1}, {"from": 254470, "to": 321434, "width": 1}, {"from": 537914, "to": 69, "width": 1}, {"from": 537914, "to": 247778, "width": 1}, {"from": 17723, "to": 166829, "width": 1}, {"from": 17723, "to": 320969, "width": 1}, {"from": 17723, "to": 547758, "width": 1}, {"from": 78654, "to": 65, "width": 1}, {"from": 392511, "to": 466296, "width": 1}, {"from": 30022, "to": 126893, "width": 1}, {"from": 514374, "to": 120137, "width": 1}, {"from": 514374, "to": 466296, "width": 1}, {"from": 517449, "to": 483212, "width": 1}, {"from": 120137, "to": 252349, "width": 1}, {"from": 120137, "to": 466296, "width": 1}, {"from": 422732, "to": 85444, "width": 1}, {"from": 517966, "to": 339797, "width": 1}, {"from": 517966, "to": 412517, "width": 1}, {"from": 517966, "to": 498615, "width": 1}, {"from": 298828, "to": 302996, "width": 1}, {"from": 62291, "to": 27133, "width": 1}, {"from": 68, "to": 321438, "width": 1}, {"from": 68, "to": 409571, "width": 1}, {"from": 313180, "to": 268283, "width": 1}, {"from": 313180, "to": 521089, "width": 1}, {"from": 422237, "to": 128935, "width": 1}, {"from": 69, "to": 247778, "width": 1}, {"from": 69, "to": 267166, "width": 1}, {"from": 69, "to": 507834, "width": 1}, {"from": 412517, "to": 498615, "width": 1}, {"from": 218984, "to": 476125, "width": 1}, {"from": 500600, "to": 346495, "width": 1}, {"from": 386937, "to": 202132, "width": 1}, {"from": 521089, "to": 268283, "width": 1}, {"from": 219010, "to": 521170, "width": 1}, {"from": 355213, "to": 269856, "width": 1}, {"from": 355213, "to": 484789, "width": 1}, {"from": 269856, "to": 484789, "width": 1}, {"from": 284568, "to": 84467, "width": 1}, {"from": 321434, "to": 260536, "width": 1}, {"from": 267166, "to": 507834, "width": 1}, {"from": 192929, "to": 504757, "width": 1}, {"from": 166829, "to": 114681, "width": 1}, {"from": 547758, "to": 297444, "width": 1}, {"from": 21052, "to": 528886, "width": 1}, {"from": 162248, "to": 298989, "width": 1}, {"from": 162248, "to": 495077, "width": 1}, {"from": 320969, "to": 114681, "width": 1}, {"from": 481740, "to": 528886, "width": 1}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+                      network.on("stabilizationProgress", function(params) {
+                          document.getElementById('loadingBar').removeAttribute("style");
+                          var maxWidth = 496;
+                          var minWidth = 20;
+                          var widthFactor = params.iterations/params.total;
+                          var width = Math.max(minWidth,maxWidth * widthFactor);
+                          document.getElementById('bar').style.width = width + 'px';
+                          document.getElementById('text').innerHTML = Math.round(widthFactor*100) + '%';
+                      });
+                      network.once("stabilizationIterationsDone", function() {
+                          document.getElementById('text').innerHTML = '100%';
+                          document.getElementById('bar').style.width = '496px';
+                          document.getElementById('loadingBar').style.opacity = 0;
+                          // really clean the dom element
+                          setTimeout(function () {document.getElementById('loadingBar').style.display = 'none';}, 500);
+                      });
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>

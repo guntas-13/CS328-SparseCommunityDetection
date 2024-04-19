@@ -1,0 +1,444 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 1080px;
+                 background-color: #ffffff;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+             #loadingBar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width: 100%;
+                 height: 1080px;
+                 background-color:rgba(200,200,200,0.8);
+                 -webkit-transition: all 0.5s ease;
+                 -moz-transition: all 0.5s ease;
+                 -ms-transition: all 0.5s ease;
+                 -o-transition: all 0.5s ease;
+                 transition: all 0.5s ease;
+                 opacity:1;
+             }
+
+             #bar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width:20px;
+                 height:20px;
+                 margin:auto auto auto auto;
+                 border-radius:11px;
+                 border:2px solid rgba(30,30,30,0.05);
+                 background: rgb(0, 173, 246); /* Old browsers */
+                 box-shadow: 2px 0px 4px rgba(0,0,0,0.4);
+             }
+
+             #border {
+                 position:absolute;
+                 top:10px;
+                 left:10px;
+                 width:500px;
+                 height:23px;
+                 margin:auto auto auto auto;
+                 box-shadow: 0px 0px 4px rgba(0,0,0,0.2);
+                 border-radius:10px;
+             }
+
+             #text {
+                 position:absolute;
+                 top:8px;
+                 left:530px;
+                 width:30px;
+                 height:50px;
+                 margin:auto auto auto auto;
+                 font-size:22px;
+                 color: #000000;
+             }
+
+             div.outerBorder {
+                 position:relative;
+                 top:400px;
+                 width:600px;
+                 height:44px;
+                 margin:auto auto auto auto;
+                 border:8px solid rgba(0,0,0,0.1);
+                 background: rgb(252,252,252); /* Old browsers */
+                 background: -moz-linear-gradient(top,  rgba(252,252,252,1) 0%, rgba(237,237,237,1) 100%); /* FF3.6+ */
+                 background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(252,252,252,1)), color-stop(100%,rgba(237,237,237,1))); /* Chrome,Safari4+ */
+                 background: -webkit-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Chrome10+,Safari5.1+ */
+                 background: -o-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Opera 11.10+ */
+                 background: -ms-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* IE10+ */
+                 background: linear-gradient(to bottom,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* W3C */
+                 filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#fcfcfc', endColorstr='#ededed',GradientType=0 ); /* IE6-9 */
+                 border-radius:72px;
+                 box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+             }
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+            <div id="loadingBar">
+              <div class="outerBorder">
+                <div id="text">0%</div>
+                <div id="border">
+                  <div id="bar"></div>
+                </div>
+              </div>
+            </div>
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#97c2fc", "community": 13088, "id": 0, "label": 0, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 1, "label": 1, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 2, "label": 2, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 4519, "label": 4519, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13040, "id": 23073, "label": 23073, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13045, "id": 33043, "label": 33043, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 33971, "label": 33971, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13090, "id": 75503, "label": 75503, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 12726, "id": 101215, "label": 101215, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 120044, "label": 120044, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 123880, "label": 123880, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 124002, "label": 124002, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 206567, "label": 206567, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 274042, "label": 274042, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 369692, "label": 369692, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 8924, "id": 411025, "label": 411025, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 413808, "label": 413808, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10823, "id": 5915, "label": 5915, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 7741, "label": 7741, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 7852, "label": 7852, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13303, "id": 7979, "label": 7979, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13090, "id": 8085, "label": 8085, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13090, "id": 8086, "label": 8086, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 12353, "id": 9335, "label": 9335, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 10971, "label": 10971, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13103, "id": 12238, "label": 12238, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13045, "id": 13090, "label": 13090, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 13419, "label": 13419, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 13811, "label": 13811, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 14662, "label": 14662, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13103, "id": 15004, "label": 15004, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 15432, "label": 15432, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 11252, "id": 16259, "label": 16259, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13222, "id": 16408, "label": 16408, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 16803, "label": 16803, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13103, "id": 17411, "label": 17411, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10510, "id": 18035, "label": 18035, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 21502, "label": 21502, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 12908, "id": 22970, "label": 22970, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 27021, "label": 27021, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13119, "id": 27466, "label": 27466, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10823, "id": 28995, "label": 28995, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10510, "id": 29998, "label": 29998, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13040, "id": 31096, "label": 31096, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 33126, "label": 33126, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 33762, "label": 33762, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13303, "id": 35156, "label": 35156, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13222, "id": 36918, "label": 36918, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 11252, "id": 37774, "label": 37774, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 40548, "label": 40548, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 44446, "label": 44446, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13222, "id": 44725, "label": 44725, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 46588, "label": 46588, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 47489, "label": 47489, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 49063, "label": 49063, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 49144, "label": 49144, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 56260, "label": 56260, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 58164, "label": 58164, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 58212, "label": 58212, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10497, "id": 63386, "label": 63386, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 11778, "id": 66243, "label": 66243, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13103, "id": 66305, "label": 66305, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13119, "id": 66668, "label": 66668, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13303, "id": 67191, "label": 67191, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13040, "id": 73133, "label": 73133, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 11778, "id": 74815, "label": 74815, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 75213, "label": 75213, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 77551, "label": 77551, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13303, "id": 78424, "label": 78424, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 81806, "label": 81806, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 83059, "label": 83059, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13040, "id": 84042, "label": 84042, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13222, "id": 84805, "label": 84805, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 85126, "label": 85126, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 12004, "id": 86291, "label": 86291, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13119, "id": 90680, "label": 90680, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 92739, "label": 92739, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 92740, "label": 92740, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13103, "id": 93377, "label": 93377, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 95874, "label": 95874, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13040, "id": 97590, "label": 97590, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10497, "id": 97591, "label": 97591, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 97758, "label": 97758, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10497, "id": 103133, "label": 103133, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 11252, "id": 110696, "label": 110696, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 113230, "label": 113230, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 5664, "id": 115324, "label": 115324, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10480, "id": 122675, "label": 122675, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13045, "id": 159465, "label": 159465, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13103, "id": 162643, "label": 162643, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10497, "id": 164373, "label": 164373, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 166307, "label": 166307, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 5664, "id": 173255, "label": 173255, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 5664, "id": 173256, "label": 173256, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 12238, "id": 179100, "label": 179100, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 6698, "id": 193261, "label": 193261, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13222, "id": 194924, "label": 194924, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 198462, "label": 198462, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13045, "id": 223322, "label": 223322, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10510, "id": 229958, "label": 229958, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13040, "id": 248344, "label": 248344, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 253221, "label": 253221, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 11125, "id": 255383, "label": 255383, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 11252, "id": 268421, "label": 268421, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 6698, "id": 321570, "label": 321570, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10427, "id": 321680, "label": 321680, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 6786, "label": 6786, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13045, "id": 10077, "label": 10077, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 23595, "label": 23595, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13164, "id": 37678, "label": 37678, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13040, "id": 44724, "label": 44724, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 12772, "id": 54787, "label": 54787, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 65297, "label": 65297, "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 75502, "label": 75502, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13090, "id": 79494, "label": 79494, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 84203, "label": 84203, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 6237, "id": 93250, "label": 93250, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 12004, "id": 108350, "label": 108350, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 12004, "id": 108790, "label": 108790, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 6361, "id": 127771, "label": 127771, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 139006, "label": 139006, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 12004, "id": 157374, "label": 157374, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 12004, "id": 189316, "label": 189316, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 3, "label": 3, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 10816, "label": 10816, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13090, "id": 15821, "label": 15821, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13090, "id": 18373, "label": 18373, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 21946, "label": 21946, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 22531, "label": 22531, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 22955, "label": 22955, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 34140, "label": 34140, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 56565, "label": 56565, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 58183, "label": 58183, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 59273, "label": 59273, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 71407, "label": 71407, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 117331, "label": 117331, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10642, "id": 4, "label": 4, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10642, "id": 11, "label": 11, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 11614, "id": 384513, "label": 384513, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13428, "id": 61, "label": 61, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13428, "id": 55007, "label": 55007, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 11614, "id": 197599, "label": 197599, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 11614, "id": 384514, "label": 384514, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 11614, "id": 394196, "label": 394196, "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 415819, "label": 415819, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 12695, "id": 10, "label": 10, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10642, "id": 53, "label": 53, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13303, "id": 368, "label": 368, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10642, "id": 369, "label": 369, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 12695, "id": 3514, "label": 3514, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 12695, "id": 3641, "label": 3641, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10642, "id": 35, "label": 35, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10642, "id": 105, "label": 105, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 10244, "label": 10244, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 10155, "label": 10155, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 12040, "id": 3086, "label": 3086, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13303, "id": 83, "label": 83, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 4699, "id": 21, "label": 21, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13303, "id": 22378, "label": 22378, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13303, "id": 90421, "label": 90421, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13090, "id": 12467, "label": 12467, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 9783, "id": 243226, "label": 243226, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13428, "id": 116767, "label": 116767, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 11474, "id": 27, "label": 27, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 138, "label": 138, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10642, "id": 264, "label": 264, "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 29, "label": 29, "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 348, "label": 348, "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 364, "label": 364, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 3890, "label": 3890, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10642, "id": 6172, "label": 6172, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 96, "label": 96, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13222, "id": 72070, "label": 72070, "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 356896, "label": 356896, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13129, "id": 69, "label": 69, "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 140711, "label": 140711, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 12331, "id": 152729, "label": 152729, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 9159, "id": 173384, "label": 173384, "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 334133, "label": 334133, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10642, "id": 39, "label": 39, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 6003, "id": 237087, "label": 237087, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 9797, "id": 237088, "label": 237088, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 11314, "id": 11302, "label": 11302, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13005, "id": 219689, "label": 219689, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10642, "id": 1332, "label": 1332, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10642, "id": 120, "label": 120, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 12004, "id": 109620, "label": 109620, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13040, "id": 10823, "label": 10823, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 12004, "id": 57917, "label": 57917, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13164, "id": 84050, "label": 84050, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 12033, "id": 76853, "label": 76853, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13090, "id": 25670, "label": 25670, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13222, "id": 45116, "label": 45116, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13321, "id": 63075, "label": 63075, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 12033, "id": 237232, "label": 237232, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 12634, "id": 220214, "label": 220214, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 101353, "label": 101353, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13103, "id": 8761, "label": 8761, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13303, "id": 25850, "label": 25850, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13222, "id": 93348, "label": 93348, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13222, "id": 303921, "label": 303921, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 11778, "id": 274, "label": 274, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13303, "id": 426, "label": 426, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10642, "id": 2527, "label": 2527, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13103, "id": 33969, "label": 33969, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13428, "id": 48574, "label": 48574, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13428, "id": 57571, "label": 57571, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13119, "id": 80747, "label": 80747, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13428, "id": 88279, "label": 88279, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13119, "id": 114328, "label": 114328, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13040, "id": 126396, "label": 126396, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13103, "id": 171891, "label": 171891, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13428, "id": 181660, "label": 181660, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13428, "id": 209324, "label": 209324, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13103, "id": 216914, "label": 216914, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13428, "id": 253789, "label": 253789, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13103, "id": 266105, "label": 266105, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13119, "id": 304290, "label": 304290, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 12848, "id": 337539, "label": 337539, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 12639, "id": 345810, "label": 345810, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 5609, "id": 381075, "label": 381075, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 5609, "id": 381076, "label": 381076, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 5609, "id": 381077, "label": 381077, "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 382755, "label": 382755, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 5609, "id": 388674, "label": 388674, "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 403092, "label": 403092, "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 415601, "label": 415601, "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 29902, "label": 29902, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13129, "id": 77105, "label": 77105, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13129, "id": 127052, "label": 127052, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13129, "id": 129843, "label": 129843, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13129, "id": 129844, "label": 129844, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13129, "id": 129845, "label": 129845, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13129, "id": 129846, "label": 129846, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13129, "id": 129847, "label": 129847, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 11474, "id": 70, "label": 70, "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 11934, "label": 11934, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13303, "id": 17356, "label": 17356, "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 27035, "label": 27035, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10497, "id": 27502, "label": 27502, "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 46490, "label": 46490, "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 72, "label": 72, "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 98, "label": 98, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 58963, "label": 58963, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10642, "id": 74, "label": 74, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10642, "id": 94, "label": 94, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10642, "id": 102, "label": 102, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10642, "id": 206, "label": 206, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 11314, "id": 75, "label": 75, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 11474, "id": 2335, "label": 2335, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 12772, "id": 19952, "label": 19952, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13040, "id": 19953, "label": 19953, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 11314, "id": 22485, "label": 22485, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 11314, "id": 22486, "label": 22486, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 25232, "label": 25232, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 11314, "id": 31020, "label": 31020, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 11778, "id": 2835, "label": 2835, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13303, "id": 2851, "label": 2851, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13303, "id": 3019, "label": 3019, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 25458, "label": 25458, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13103, "id": 40922, "label": 40922, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13119, "id": 46212, "label": 46212, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13040, "id": 57500, "label": 57500, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 60078, "label": 60078, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 12004, "id": 90211, "label": 90211, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 12004, "id": 93474, "label": 93474, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 12545, "id": 94711, "label": 94711, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 100446, "label": 100446, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 11778, "id": 107759, "label": 107759, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13119, "id": 109031, "label": 109031, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 124987, "label": 124987, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 12004, "id": 158877, "label": 158877, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 12004, "id": 166063, "label": 166063, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 6734, "label": 6734, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13090, "id": 99, "label": 99, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10642, "id": 2288, "label": 2288, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10642, "id": 2503, "label": 2503, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13303, "id": 1783, "label": 1783, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10642, "id": 2122, "label": 2122, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10642, "id": 2123, "label": 2123, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10904, "id": 6294, "label": 6294, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 7656, "label": 7656, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10642, "id": 11188, "label": 11188, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 12931, "id": 19970, "label": 19970, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 55032, "label": 55032, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10361, "id": 71596, "label": 71596, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 9256, "id": 81838, "label": 81838, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10642, "id": 437, "label": 437, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 12772, "id": 108, "label": 108, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 12772, "id": 1732, "label": 1732, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 12772, "id": 2841, "label": 2841, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 10642, "id": 118, "label": 118, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13303, "id": 3637, "label": 3637, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 11252, "id": 4810, "label": 4810, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 19158, "label": 19158, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 31299, "label": 31299, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 31301, "label": 31301, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13088, "id": 37349, "label": 37349, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13090, "id": 64469, "label": 64469, "shape": "dot", "size": 10}, {"color": "#97c2fc", "community": 13090, "id": 32740, "label": 32740, "shape": "dot", "size": 10}]);
+                  edges = new vis.DataSet([{"from": 0, "to": 1, "width": 1}, {"from": 0, "to": 2, "width": 1}, {"from": 0, "to": 4519, "width": 1}, {"from": 0, "to": 23073, "width": 1}, {"from": 0, "to": 33043, "width": 1}, {"from": 0, "to": 33971, "width": 1}, {"from": 0, "to": 75503, "width": 1}, {"from": 0, "to": 101215, "width": 1}, {"from": 0, "to": 120044, "width": 1}, {"from": 0, "to": 123880, "width": 1}, {"from": 0, "to": 124002, "width": 1}, {"from": 0, "to": 206567, "width": 1}, {"from": 0, "to": 274042, "width": 1}, {"from": 0, "to": 369692, "width": 1}, {"from": 0, "to": 411025, "width": 1}, {"from": 0, "to": 413808, "width": 1}, {"from": 1, "to": 2, "width": 1}, {"from": 1, "to": 5915, "width": 1}, {"from": 1, "to": 7741, "width": 1}, {"from": 1, "to": 7852, "width": 1}, {"from": 1, "to": 7979, "width": 1}, {"from": 1, "to": 8085, "width": 1}, {"from": 1, "to": 8086, "width": 1}, {"from": 1, "to": 9335, "width": 1}, {"from": 1, "to": 10971, "width": 1}, {"from": 1, "to": 12238, "width": 1}, {"from": 1, "to": 13090, "width": 1}, {"from": 1, "to": 13419, "width": 1}, {"from": 1, "to": 13811, "width": 1}, {"from": 1, "to": 14662, "width": 1}, {"from": 1, "to": 15004, "width": 1}, {"from": 1, "to": 15432, "width": 1}, {"from": 1, "to": 16259, "width": 1}, {"from": 1, "to": 16408, "width": 1}, {"from": 1, "to": 16803, "width": 1}, {"from": 1, "to": 17411, "width": 1}, {"from": 1, "to": 18035, "width": 1}, {"from": 1, "to": 21502, "width": 1}, {"from": 1, "to": 22970, "width": 1}, {"from": 1, "to": 27021, "width": 1}, {"from": 1, "to": 27466, "width": 1}, {"from": 1, "to": 28995, "width": 1}, {"from": 1, "to": 29998, "width": 1}, {"from": 1, "to": 31096, "width": 1}, {"from": 1, "to": 33126, "width": 1}, {"from": 1, "to": 33762, "width": 1}, {"from": 1, "to": 35156, "width": 1}, {"from": 1, "to": 36918, "width": 1}, {"from": 1, "to": 37774, "width": 1}, {"from": 1, "to": 40548, "width": 1}, {"from": 1, "to": 44446, "width": 1}, {"from": 1, "to": 44725, "width": 1}, {"from": 1, "to": 46588, "width": 1}, {"from": 1, "to": 47489, "width": 1}, {"from": 1, "to": 49063, "width": 1}, {"from": 1, "to": 49144, "width": 1}, {"from": 1, "to": 56260, "width": 1}, {"from": 1, "to": 58164, "width": 1}, {"from": 1, "to": 58212, "width": 1}, {"from": 1, "to": 63386, "width": 1}, {"from": 1, "to": 66243, "width": 1}, {"from": 1, "to": 66305, "width": 1}, {"from": 1, "to": 66668, "width": 1}, {"from": 1, "to": 67191, "width": 1}, {"from": 1, "to": 73133, "width": 1}, {"from": 1, "to": 74815, "width": 1}, {"from": 1, "to": 75213, "width": 1}, {"from": 1, "to": 77551, "width": 1}, {"from": 1, "to": 78424, "width": 1}, {"from": 1, "to": 81806, "width": 1}, {"from": 1, "to": 83059, "width": 1}, {"from": 1, "to": 84042, "width": 1}, {"from": 1, "to": 84805, "width": 1}, {"from": 1, "to": 85126, "width": 1}, {"from": 1, "to": 86291, "width": 1}, {"from": 1, "to": 90680, "width": 1}, {"from": 1, "to": 92739, "width": 1}, {"from": 1, "to": 92740, "width": 1}, {"from": 1, "to": 93377, "width": 1}, {"from": 1, "to": 95874, "width": 1}, {"from": 1, "to": 97590, "width": 1}, {"from": 1, "to": 97591, "width": 1}, {"from": 1, "to": 97758, "width": 1}, {"from": 1, "to": 103133, "width": 1}, {"from": 1, "to": 110696, "width": 1}, {"from": 1, "to": 113230, "width": 1}, {"from": 1, "to": 115324, "width": 1}, {"from": 1, "to": 122675, "width": 1}, {"from": 1, "to": 159465, "width": 1}, {"from": 1, "to": 162643, "width": 1}, {"from": 1, "to": 164373, "width": 1}, {"from": 1, "to": 166307, "width": 1}, {"from": 1, "to": 173255, "width": 1}, {"from": 1, "to": 173256, "width": 1}, {"from": 1, "to": 179100, "width": 1}, {"from": 1, "to": 193261, "width": 1}, {"from": 1, "to": 194924, "width": 1}, {"from": 1, "to": 198462, "width": 1}, {"from": 1, "to": 223322, "width": 1}, {"from": 1, "to": 229958, "width": 1}, {"from": 1, "to": 248344, "width": 1}, {"from": 1, "to": 253221, "width": 1}, {"from": 1, "to": 255383, "width": 1}, {"from": 1, "to": 268421, "width": 1}, {"from": 1, "to": 321570, "width": 1}, {"from": 1, "to": 321680, "width": 1}, {"from": 2, "to": 6786, "width": 1}, {"from": 2, "to": 10077, "width": 1}, {"from": 2, "to": 16803, "width": 1}, {"from": 2, "to": 23595, "width": 1}, {"from": 2, "to": 33043, "width": 1}, {"from": 2, "to": 33126, "width": 1}, {"from": 2, "to": 37678, "width": 1}, {"from": 2, "to": 44724, "width": 1}, {"from": 2, "to": 54787, "width": 1}, {"from": 2, "to": 65297, "width": 1}, {"from": 2, "to": 66305, "width": 1}, {"from": 2, "to": 75213, "width": 1}, {"from": 2, "to": 75502, "width": 1}, {"from": 2, "to": 75503, "width": 1}, {"from": 2, "to": 79494, "width": 1}, {"from": 2, "to": 84203, "width": 1}, {"from": 2, "to": 93250, "width": 1}, {"from": 2, "to": 97758, "width": 1}, {"from": 2, "to": 108350, "width": 1}, {"from": 2, "to": 108790, "width": 1}, {"from": 2, "to": 127771, "width": 1}, {"from": 2, "to": 139006, "width": 1}, {"from": 2, "to": 157374, "width": 1}, {"from": 2, "to": 189316, "width": 1}, {"from": 17411, "to": 15432, "width": 1}, {"from": 17411, "to": 27021, "width": 1}, {"from": 17411, "to": 37774, "width": 1}, {"from": 54787, "to": 189316, "width": 1}, {"from": 3, "to": 10816, "width": 1}, {"from": 3, "to": 15821, "width": 1}, {"from": 3, "to": 18373, "width": 1}, {"from": 3, "to": 21946, "width": 1}, {"from": 3, "to": 22531, "width": 1}, {"from": 3, "to": 22955, "width": 1}, {"from": 3, "to": 34140, "width": 1}, {"from": 3, "to": 56565, "width": 1}, {"from": 3, "to": 58183, "width": 1}, {"from": 3, "to": 59273, "width": 1}, {"from": 3, "to": 71407, "width": 1}, {"from": 3, "to": 117331, "width": 1}, {"from": 22531, "to": 14662, "width": 1}, {"from": 22531, "to": 15821, "width": 1}, {"from": 22531, "to": 21946, "width": 1}, {"from": 22531, "to": 22955, "width": 1}, {"from": 22531, "to": 117331, "width": 1}, {"from": 4, "to": 11, "width": 1}, {"from": 384513, "to": 61, "width": 1}, {"from": 384513, "to": 55007, "width": 1}, {"from": 384513, "to": 197599, "width": 1}, {"from": 384513, "to": 384514, "width": 1}, {"from": 384513, "to": 394196, "width": 1}, {"from": 384513, "to": 415819, "width": 1}, {"from": 384514, "to": 61, "width": 1}, {"from": 384514, "to": 55007, "width": 1}, {"from": 384514, "to": 197599, "width": 1}, {"from": 384514, "to": 394196, "width": 1}, {"from": 10, "to": 53, "width": 1}, {"from": 10, "to": 61, "width": 1}, {"from": 10, "to": 368, "width": 1}, {"from": 10, "to": 369, "width": 1}, {"from": 10, "to": 3514, "width": 1}, {"from": 10, "to": 3641, "width": 1}, {"from": 11, "to": 35, "width": 1}, {"from": 11, "to": 105, "width": 1}, {"from": 10244, "to": 105, "width": 1}, {"from": 10244, "to": 10155, "width": 1}, {"from": 3086, "to": 83, "width": 1}, {"from": 3086, "to": 23595, "width": 1}, {"from": 164373, "to": 179100, "width": 1}, {"from": 21, "to": 22378, "width": 1}, {"from": 21, "to": 90421, "width": 1}, {"from": 16408, "to": 7852, "width": 1}, {"from": 16408, "to": 12467, "width": 1}, {"from": 16408, "to": 15004, "width": 1}, {"from": 16408, "to": 21946, "width": 1}, {"from": 16408, "to": 35156, "width": 1}, {"from": 16408, "to": 36918, "width": 1}, {"from": 16408, "to": 84805, "width": 1}, {"from": 16408, "to": 85126, "width": 1}, {"from": 16408, "to": 86291, "width": 1}, {"from": 16408, "to": 97590, "width": 1}, {"from": 16408, "to": 97591, "width": 1}, {"from": 16408, "to": 166307, "width": 1}, {"from": 16408, "to": 179100, "width": 1}, {"from": 16408, "to": 255383, "width": 1}, {"from": 16408, "to": 321570, "width": 1}, {"from": 248344, "to": 44446, "width": 1}, {"from": 243226, "to": 61, "width": 1}, {"from": 243226, "to": 116767, "width": 1}, {"from": 27, "to": 138, "width": 1}, {"from": 27, "to": 264, "width": 1}, {"from": 369692, "to": 75503, "width": 1}, {"from": 369692, "to": 123880, "width": 1}, {"from": 369692, "to": 274042, "width": 1}, {"from": 29, "to": 348, "width": 1}, {"from": 29, "to": 364, "width": 1}, {"from": 29, "to": 3890, "width": 1}, {"from": 6172, "to": 96, "width": 1}, {"from": 116767, "to": 61, "width": 1}, {"from": 116767, "to": 72070, "width": 1}, {"from": 356896, "to": 69, "width": 1}, {"from": 356896, "to": 140711, "width": 1}, {"from": 356896, "to": 152729, "width": 1}, {"from": 356896, "to": 173384, "width": 1}, {"from": 356896, "to": 334133, "width": 1}, {"from": 23073, "to": 274042, "width": 1}, {"from": 321570, "to": 6786, "width": 1}, {"from": 35, "to": 39, "width": 1}, {"from": 237087, "to": 83, "width": 1}, {"from": 237087, "to": 237088, "width": 1}, {"from": 237088, "to": 83, "width": 1}, {"from": 11302, "to": 83, "width": 1}, {"from": 219689, "to": 61, "width": 1}, {"from": 23595, "to": 6786, "width": 1}, {"from": 23595, "to": 16803, "width": 1}, {"from": 23595, "to": 33043, "width": 1}, {"from": 23595, "to": 33126, "width": 1}, {"from": 23595, "to": 34140, "width": 1}, {"from": 23595, "to": 67191, "width": 1}, {"from": 23595, "to": 97758, "width": 1}, {"from": 23595, "to": 166307, "width": 1}, {"from": 1332, "to": 120, "width": 1}, {"from": 109620, "to": 83, "width": 1}, {"from": 109620, "to": 10823, "width": 1}, {"from": 109620, "to": 57917, "width": 1}, {"from": 109620, "to": 84050, "width": 1}, {"from": 36918, "to": 97590, "width": 1}, {"from": 36918, "to": 97591, "width": 1}, {"from": 76853, "to": 61, "width": 1}, {"from": 76853, "to": 25670, "width": 1}, {"from": 76853, "to": 45116, "width": 1}, {"from": 76853, "to": 63075, "width": 1}, {"from": 76853, "to": 72070, "width": 1}, {"from": 76853, "to": 237232, "width": 1}, {"from": 90680, "to": 15004, "width": 1}, {"from": 90680, "to": 33971, "width": 1}, {"from": 90680, "to": 66305, "width": 1}, {"from": 90680, "to": 268421, "width": 1}, {"from": 3641, "to": 3514, "width": 1}, {"from": 220214, "to": 61, "width": 1}, {"from": 220214, "to": 25670, "width": 1}, {"from": 220214, "to": 101353, "width": 1}, {"from": 8761, "to": 83, "width": 1}, {"from": 8761, "to": 25850, "width": 1}, {"from": 45116, "to": 61, "width": 1}, {"from": 45116, "to": 63075, "width": 1}, {"from": 45116, "to": 72070, "width": 1}, {"from": 45116, "to": 93348, "width": 1}, {"from": 45116, "to": 237232, "width": 1}, {"from": 45116, "to": 303921, "width": 1}, {"from": 61, "to": 274, "width": 1}, {"from": 61, "to": 426, "width": 1}, {"from": 61, "to": 2527, "width": 1}, {"from": 61, "to": 25670, "width": 1}, {"from": 61, "to": 33969, "width": 1}, {"from": 61, "to": 48574, "width": 1}, {"from": 61, "to": 55007, "width": 1}, {"from": 61, "to": 57571, "width": 1}, {"from": 61, "to": 63075, "width": 1}, {"from": 61, "to": 72070, "width": 1}, {"from": 61, "to": 80747, "width": 1}, {"from": 61, "to": 88279, "width": 1}, {"from": 61, "to": 93348, "width": 1}, {"from": 61, "to": 101353, "width": 1}, {"from": 61, "to": 114328, "width": 1}, {"from": 61, "to": 126396, "width": 1}, {"from": 61, "to": 171891, "width": 1}, {"from": 61, "to": 181660, "width": 1}, {"from": 61, "to": 197599, "width": 1}, {"from": 61, "to": 209324, "width": 1}, {"from": 61, "to": 216914, "width": 1}, {"from": 61, "to": 237232, "width": 1}, {"from": 61, "to": 253789, "width": 1}, {"from": 61, "to": 266105, "width": 1}, {"from": 61, "to": 303921, "width": 1}, {"from": 61, "to": 304290, "width": 1}, {"from": 61, "to": 337539, "width": 1}, {"from": 61, "to": 345810, "width": 1}, {"from": 61, "to": 381075, "width": 1}, {"from": 61, "to": 381076, "width": 1}, {"from": 61, "to": 381077, "width": 1}, {"from": 61, "to": 382755, "width": 1}, {"from": 61, "to": 388674, "width": 1}, {"from": 61, "to": 394196, "width": 1}, {"from": 61, "to": 403092, "width": 1}, {"from": 61, "to": 415601, "width": 1}, {"from": 61, "to": 415819, "width": 1}, {"from": 74815, "to": 31096, "width": 1}, {"from": 74815, "to": 49144, "width": 1}, {"from": 10816, "to": 22955, "width": 1}, {"from": 10816, "to": 28995, "width": 1}, {"from": 10816, "to": 33126, "width": 1}, {"from": 10816, "to": 34140, "width": 1}, {"from": 10816, "to": 56565, "width": 1}, {"from": 10816, "to": 58183, "width": 1}, {"from": 10816, "to": 71407, "width": 1}, {"from": 57917, "to": 83, "width": 1}, {"from": 57917, "to": 10823, "width": 1}, {"from": 57917, "to": 84050, "width": 1}, {"from": 92739, "to": 14662, "width": 1}, {"from": 92739, "to": 21502, "width": 1}, {"from": 92739, "to": 92740, "width": 1}, {"from": 92739, "to": 113230, "width": 1}, {"from": 92739, "to": 173255, "width": 1}, {"from": 92739, "to": 173256, "width": 1}, {"from": 92740, "to": 8085, "width": 1}, {"from": 92740, "to": 14662, "width": 1}, {"from": 92740, "to": 21502, "width": 1}, {"from": 92740, "to": 113230, "width": 1}, {"from": 92740, "to": 173255, "width": 1}, {"from": 92740, "to": 173256, "width": 1}, {"from": 388674, "to": 171891, "width": 1}, {"from": 388674, "to": 266105, "width": 1}, {"from": 388674, "to": 381075, "width": 1}, {"from": 388674, "to": 381076, "width": 1}, {"from": 388674, "to": 381077, "width": 1}, {"from": 229958, "to": 40548, "width": 1}, {"from": 25670, "to": 101353, "width": 1}, {"from": 15432, "to": 7979, "width": 1}, {"from": 15432, "to": 13090, "width": 1}, {"from": 15432, "to": 16259, "width": 1}, {"from": 15432, "to": 29998, "width": 1}, {"from": 15432, "to": 37774, "width": 1}, {"from": 15432, "to": 46588, "width": 1}, {"from": 15432, "to": 56260, "width": 1}, {"from": 15432, "to": 58183, "width": 1}, {"from": 69, "to": 29902, "width": 1}, {"from": 69, "to": 77105, "width": 1}, {"from": 69, "to": 127052, "width": 1}, {"from": 69, "to": 129843, "width": 1}, {"from": 69, "to": 129844, "width": 1}, {"from": 69, "to": 129845, "width": 1}, {"from": 69, "to": 129846, "width": 1}, {"from": 69, "to": 129847, "width": 1}, {"from": 69, "to": 140711, "width": 1}, {"from": 69, "to": 152729, "width": 1}, {"from": 69, "to": 173384, "width": 1}, {"from": 69, "to": 334133, "width": 1}, {"from": 84042, "to": 15004, "width": 1}, {"from": 84042, "to": 27466, "width": 1}, {"from": 415819, "to": 394196, "width": 1}, {"from": 127052, "to": 77105, "width": 1}, {"from": 127052, "to": 129843, "width": 1}, {"from": 127052, "to": 129844, "width": 1}, {"from": 127052, "to": 129845, "width": 1}, {"from": 127052, "to": 129846, "width": 1}, {"from": 127052, "to": 129847, "width": 1}, {"from": 70, "to": 11934, "width": 1}, {"from": 70, "to": 12467, "width": 1}, {"from": 70, "to": 17356, "width": 1}, {"from": 70, "to": 27035, "width": 1}, {"from": 70, "to": 27502, "width": 1}, {"from": 70, "to": 46490, "width": 1}, {"from": 113230, "to": 8085, "width": 1}, {"from": 113230, "to": 14662, "width": 1}, {"from": 113230, "to": 21502, "width": 1}, {"from": 113230, "to": 37678, "width": 1}, {"from": 113230, "to": 159465, "width": 1}, {"from": 113230, "to": 173255, "width": 1}, {"from": 113230, "to": 173256, "width": 1}, {"from": 113230, "to": 223322, "width": 1}, {"from": 72, "to": 98, "width": 1}, {"from": 72, "to": 58963, "width": 1}, {"from": 74, "to": 94, "width": 1}, {"from": 74, "to": 102, "width": 1}, {"from": 74, "to": 206, "width": 1}, {"from": 75, "to": 2335, "width": 1}, {"from": 75, "to": 19952, "width": 1}, {"from": 75, "to": 19953, "width": 1}, {"from": 75, "to": 22485, "width": 1}, {"from": 75, "to": 22486, "width": 1}, {"from": 75, "to": 25232, "width": 1}, {"from": 75, "to": 31020, "width": 1}, {"from": 84050, "to": 83, "width": 1}, {"from": 84050, "to": 10823, "width": 1}, {"from": 117331, "to": 15821, "width": 1}, {"from": 117331, "to": 21946, "width": 1}, {"from": 117331, "to": 22955, "width": 1}, {"from": 83, "to": 2835, "width": 1}, {"from": 83, "to": 2851, "width": 1}, {"from": 83, "to": 3019, "width": 1}, {"from": 83, "to": 10823, "width": 1}, {"from": 83, "to": 25458, "width": 1}, {"from": 83, "to": 25850, "width": 1}, {"from": 83, "to": 40922, "width": 1}, {"from": 83, "to": 46212, "width": 1}, {"from": 83, "to": 57500, "width": 1}, {"from": 83, "to": 60078, "width": 1}, {"from": 83, "to": 90211, "width": 1}, {"from": 83, "to": 93474, "width": 1}, {"from": 83, "to": 94711, "width": 1}, {"from": 83, "to": 100446, "width": 1}, {"from": 83, "to": 107759, "width": 1}, {"from": 83, "to": 109031, "width": 1}, {"from": 83, "to": 124987, "width": 1}, {"from": 83, "to": 158877, "width": 1}, {"from": 83, "to": 166063, "width": 1}, {"from": 6734, "to": 99, "width": 1}, {"from": 78424, "to": 66305, "width": 1}, {"from": 78424, "to": 67191, "width": 1}, {"from": 223322, "to": 14662, "width": 1}, {"from": 223322, "to": 159465, "width": 1}, {"from": 94, "to": 102, "width": 1}, {"from": 94, "to": 2288, "width": 1}, {"from": 94, "to": 2503, "width": 1}, {"from": 100446, "to": 124987, "width": 1}, {"from": 96, "to": 138, "width": 1}, {"from": 96, "to": 1783, "width": 1}, {"from": 96, "to": 2122, "width": 1}, {"from": 96, "to": 2123, "width": 1}, {"from": 96, "to": 6294, "width": 1}, {"from": 96, "to": 7656, "width": 1}, {"from": 96, "to": 11188, "width": 1}, {"from": 96, "to": 19970, "width": 1}, {"from": 96, "to": 55032, "width": 1}, {"from": 96, "to": 71596, "width": 1}, {"from": 96, "to": 81838, "width": 1}, {"from": 124002, "to": 120044, "width": 1}, {"from": 124002, "to": 206567, "width": 1}, {"from": 63075, "to": 237232, "width": 1}, {"from": 40548, "to": 14662, "width": 1}, {"from": 40548, "to": 253221, "width": 1}, {"from": 90211, "to": 25850, "width": 1}, {"from": 90211, "to": 107759, "width": 1}, {"from": 105, "to": 437, "width": 1}, {"from": 105, "to": 10155, "width": 1}, {"from": 124987, "to": 44446, "width": 1}, {"from": 13419, "to": 8085, "width": 1}, {"from": 13419, "to": 31096, "width": 1}, {"from": 66668, "to": 7852, "width": 1}, {"from": 108, "to": 1732, "width": 1}, {"from": 108, "to": 2841, "width": 1}, {"from": 413808, "to": 75503, "width": 1}, {"from": 413808, "to": 274042, "width": 1}, {"from": 83059, "to": 33762, "width": 1}, {"from": 83059, "to": 46588, "width": 1}, {"from": 118, "to": 3637, "width": 1}, {"from": 118, "to": 4810, "width": 1}, {"from": 67191, "to": 6786, "width": 1}, {"from": 67191, "to": 16803, "width": 1}, {"from": 67191, "to": 75213, "width": 1}, {"from": 67191, "to": 95874, "width": 1}, {"from": 274042, "to": 75503, "width": 1}, {"from": 274042, "to": 123880, "width": 1}, {"from": 19970, "to": 55032, "width": 1}, {"from": 19970, "to": 71596, "width": 1}, {"from": 115324, "to": 8085, "width": 1}, {"from": 115324, "to": 14662, "width": 1}, {"from": 95874, "to": 166307, "width": 1}, {"from": 6786, "to": 33126, "width": 1}, {"from": 6786, "to": 86291, "width": 1}, {"from": 337539, "to": 33969, "width": 1}, {"from": 337539, "to": 57571, "width": 1}, {"from": 268421, "to": 15004, "width": 1}, {"from": 85126, "to": 7852, "width": 1}, {"from": 85126, "to": 35156, "width": 1}, {"from": 85126, "to": 49063, "width": 1}, {"from": 85126, "to": 93377, "width": 1}, {"from": 79494, "to": 75503, "width": 1}, {"from": 79494, "to": 157374, "width": 1}, {"from": 46212, "to": 109031, "width": 1}, {"from": 138, "to": 426, "width": 1}, {"from": 321680, "to": 97590, "width": 1}, {"from": 321680, "to": 194924, "width": 1}, {"from": 381075, "to": 171891, "width": 1}, {"from": 381075, "to": 266105, "width": 1}, {"from": 381075, "to": 381076, "width": 1}, {"from": 381075, "to": 381077, "width": 1}, {"from": 381076, "to": 171891, "width": 1}, {"from": 381076, "to": 266105, "width": 1}, {"from": 381076, "to": 381077, "width": 1}, {"from": 381077, "to": 171891, "width": 1}, {"from": 381077, "to": 266105, "width": 1}, {"from": 403092, "to": 382755, "width": 1}, {"from": 403092, "to": 415601, "width": 1}, {"from": 6294, "to": 7656, "width": 1}, {"from": 114328, "to": 80747, "width": 1}, {"from": 114328, "to": 304290, "width": 1}, {"from": 152729, "to": 173384, "width": 1}, {"from": 15004, "to": 7852, "width": 1}, {"from": 15004, "to": 49063, "width": 1}, {"from": 15004, "to": 93377, "width": 1}, {"from": 15004, "to": 162643, "width": 1}, {"from": 57500, "to": 25458, "width": 1}, {"from": 158877, "to": 94711, "width": 1}, {"from": 304290, "to": 48574, "width": 1}, {"from": 304290, "to": 80747, "width": 1}, {"from": 93348, "to": 72070, "width": 1}, {"from": 93348, "to": 303921, "width": 1}, {"from": 7852, "to": 35156, "width": 1}, {"from": 7852, "to": 93377, "width": 1}, {"from": 60078, "to": 25458, "width": 1}, {"from": 60078, "to": 34140, "width": 1}, {"from": 60078, "to": 40922, "width": 1}, {"from": 237232, "to": 72070, "width": 1}, {"from": 33969, "to": 55007, "width": 1}, {"from": 33969, "to": 57571, "width": 1}, {"from": 33969, "to": 266105, "width": 1}, {"from": 33971, "to": 33043, "width": 1}, {"from": 33971, "to": 33126, "width": 1}, {"from": 33971, "to": 56565, "width": 1}, {"from": 33971, "to": 65297, "width": 1}, {"from": 33971, "to": 101215, "width": 1}, {"from": 44724, "to": 75503, "width": 1}, {"from": 44725, "to": 58164, "width": 1}, {"from": 44725, "to": 81806, "width": 1}, {"from": 12467, "to": 27502, "width": 1}, {"from": 93377, "to": 49063, "width": 1}, {"from": 93377, "to": 179100, "width": 1}, {"from": 66243, "to": 13811, "width": 1}, {"from": 1732, "to": 2841, "width": 1}, {"from": 173255, "to": 14662, "width": 1}, {"from": 173255, "to": 21502, "width": 1}, {"from": 173255, "to": 173256, "width": 1}, {"from": 173256, "to": 14662, "width": 1}, {"from": 173256, "to": 21502, "width": 1}, {"from": 345810, "to": 88279, "width": 1}, {"from": 19158, "to": 99, "width": 1}, {"from": 19158, "to": 31299, "width": 1}, {"from": 19158, "to": 31301, "width": 1}, {"from": 19158, "to": 37349, "width": 1}, {"from": 10971, "to": 8085, "width": 1}, {"from": 10971, "to": 14662, "width": 1}, {"from": 103133, "to": 29998, "width": 1}, {"from": 103133, "to": 33043, "width": 1}, {"from": 55007, "to": 57571, "width": 1}, {"from": 55007, "to": 197599, "width": 1}, {"from": 55007, "to": 394196, "width": 1}, {"from": 57571, "to": 171891, "width": 1}, {"from": 206567, "to": 120044, "width": 1}, {"from": 159465, "to": 14662, "width": 1}, {"from": 84203, "to": 65297, "width": 1}, {"from": 84203, "to": 75503, "width": 1}, {"from": 84203, "to": 108350, "width": 1}, {"from": 84203, "to": 139006, "width": 1}, {"from": 193261, "to": 162643, "width": 1}, {"from": 75502, "to": 75503, "width": 1}, {"from": 75503, "to": 4519, "width": 1}, {"from": 75503, "to": 65297, "width": 1}, {"from": 75503, "to": 123880, "width": 1}, {"from": 75503, "to": 139006, "width": 1}, {"from": 77551, "to": 29998, "width": 1}, {"from": 77551, "to": 33762, "width": 1}, {"from": 77551, "to": 46588, "width": 1}, {"from": 77551, "to": 122675, "width": 1}, {"from": 71407, "to": 56565, "width": 1}, {"from": 71407, "to": 58183, "width": 1}, {"from": 71407, "to": 59273, "width": 1}, {"from": 107759, "to": 25850, "width": 1}, {"from": 56565, "to": 15821, "width": 1}, {"from": 56565, "to": 18373, "width": 1}, {"from": 56565, "to": 58183, "width": 1}, {"from": 108790, "to": 108350, "width": 1}, {"from": 108790, "to": 189316, "width": 1}, {"from": 55032, "to": 71596, "width": 1}, {"from": 66305, "to": 7979, "width": 1}, {"from": 66305, "to": 65297, "width": 1}, {"from": 66305, "to": 75213, "width": 1}, {"from": 65297, "to": 33043, "width": 1}, {"from": 65297, "to": 108350, "width": 1}, {"from": 33043, "to": 37678, "width": 1}, {"from": 33043, "to": 108350, "width": 1}, {"from": 13090, "to": 33126, "width": 1}, {"from": 382755, "to": 415601, "width": 1}, {"from": 2851, "to": 3019, "width": 1}, {"from": 31299, "to": 99, "width": 1}, {"from": 31299, "to": 31301, "width": 1}, {"from": 7979, "to": 16259, "width": 1}, {"from": 7979, "to": 16803, "width": 1}, {"from": 7979, "to": 34140, "width": 1}, {"from": 7979, "to": 37678, "width": 1}, {"from": 7979, "to": 58183, "width": 1}, {"from": 31301, "to": 99, "width": 1}, {"from": 31301, "to": 37349, "width": 1}, {"from": 37678, "to": 33126, "width": 1}, {"from": 37678, "to": 49144, "width": 1}, {"from": 303921, "to": 72070, "width": 1}, {"from": 122675, "to": 33762, "width": 1}, {"from": 122675, "to": 46588, "width": 1}, {"from": 58164, "to": 81806, "width": 1}, {"from": 90421, "to": 22378, "width": 1}, {"from": 97590, "to": 97591, "width": 1}, {"from": 97590, "to": 109031, "width": 1}, {"from": 97590, "to": 162643, "width": 1}, {"from": 97590, "to": 194924, "width": 1}, {"from": 77105, "to": 129843, "width": 1}, {"from": 77105, "to": 129844, "width": 1}, {"from": 77105, "to": 129845, "width": 1}, {"from": 77105, "to": 129846, "width": 1}, {"from": 77105, "to": 129847, "width": 1}, {"from": 129843, "to": 129844, "width": 1}, {"from": 129843, "to": 129845, "width": 1}, {"from": 129843, "to": 129846, "width": 1}, {"from": 129843, "to": 129847, "width": 1}, {"from": 129844, "to": 129845, "width": 1}, {"from": 129844, "to": 129846, "width": 1}, {"from": 129844, "to": 129847, "width": 1}, {"from": 129845, "to": 129846, "width": 1}, {"from": 129845, "to": 129847, "width": 1}, {"from": 129846, "to": 129847, "width": 1}, {"from": 198462, "to": 34140, "width": 1}, {"from": 108350, "to": 189316, "width": 1}, {"from": 28995, "to": 27466, "width": 1}, {"from": 14662, "to": 8085, "width": 1}, {"from": 14662, "to": 21502, "width": 1}, {"from": 58183, "to": 15821, "width": 1}, {"from": 58183, "to": 34140, "width": 1}, {"from": 58183, "to": 37774, "width": 1}, {"from": 58183, "to": 73133, "width": 1}, {"from": 27466, "to": 63386, "width": 1}, {"from": 35156, "to": 255383, "width": 1}, {"from": 34140, "to": 426, "width": 1}, {"from": 34140, "to": 15821, "width": 1}, {"from": 34140, "to": 16803, "width": 1}, {"from": 34140, "to": 27021, "width": 1}, {"from": 34140, "to": 33126, "width": 1}, {"from": 34140, "to": 37774, "width": 1}, {"from": 34140, "to": 73133, "width": 1}, {"from": 348, "to": 364, "width": 1}, {"from": 101215, "to": 411025, "width": 1}, {"from": 253789, "to": 48574, "width": 1}, {"from": 253789, "to": 181660, "width": 1}, {"from": 253789, "to": 209324, "width": 1}, {"from": 58212, "to": 47489, "width": 1}, {"from": 33126, "to": 16803, "width": 1}, {"from": 33126, "to": 27021, "width": 1}, {"from": 33126, "to": 44446, "width": 1}, {"from": 80747, "to": 48574, "width": 1}, {"from": 194924, "to": 109031, "width": 1}, {"from": 368, "to": 369, "width": 1}, {"from": 171891, "to": 266105, "width": 1}, {"from": 25458, "to": 40922, "width": 1}, {"from": 31096, "to": 49144, "width": 1}, {"from": 47489, "to": 12238, "width": 1}, {"from": 47489, "to": 59273, "width": 1}, {"from": 59273, "to": 12238, "width": 1}, {"from": 8085, "to": 8086, "width": 1}, {"from": 181660, "to": 209324, "width": 1}, {"from": 16803, "to": 97758, "width": 1}, {"from": 4519, "to": 123880, "width": 1}, {"from": 22955, "to": 21946, "width": 1}, {"from": 2122, "to": 2123, "width": 1}, {"from": 22970, "to": 13811, "width": 1}, {"from": 394196, "to": 197599, "width": 1}, {"from": 22485, "to": 22486, "width": 1}, {"from": 64469, "to": 99, "width": 1}, {"from": 64469, "to": 32740, "width": 1}, {"from": 33762, "to": 46588, "width": 1}, {"from": 32740, "to": 99, "width": 1}, {"from": 37349, "to": 99, "width": 1}, {"from": 19952, "to": 19953, "width": 1}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+                      network.on("stabilizationProgress", function(params) {
+                          document.getElementById('loadingBar').removeAttribute("style");
+                          var maxWidth = 496;
+                          var minWidth = 20;
+                          var widthFactor = params.iterations/params.total;
+                          var width = Math.max(minWidth,maxWidth * widthFactor);
+                          document.getElementById('bar').style.width = width + 'px';
+                          document.getElementById('text').innerHTML = Math.round(widthFactor*100) + '%';
+                      });
+                      network.once("stabilizationIterationsDone", function() {
+                          document.getElementById('text').innerHTML = '100%';
+                          document.getElementById('bar').style.width = '496px';
+                          document.getElementById('loadingBar').style.opacity = 0;
+                          // really clean the dom element
+                          setTimeout(function () {document.getElementById('loadingBar').style.display = 'none';}, 500);
+                      });
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
