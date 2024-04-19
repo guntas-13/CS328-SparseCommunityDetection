@@ -1,6 +1,7 @@
 # SparseCommunityDetection
 
-![](https://github.com/guntas-13/CS328-SparseCommunityDetection/blob/main/KarateGraph.png)
+![](https://github.com/guntas-13/CS328-SparseCommunityDetection/blob/main/Media/KarateGraph.png)
+![](https://github.com/guntas-13/CS328-SparseCommunityDetection/blob/main/Media/Karate.gif)
 
 ## Some Additional Sources:
 
@@ -13,4 +14,3 @@
 
 [Networkx](https://networkx.org/documentation/stable/reference/index.html)<br>
 [igraph](https://python.igraph.org/en/stable/analysis.html#clustering)
-
