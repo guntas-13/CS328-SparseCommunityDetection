@@ -13,4 +13,5 @@
 ## Handy Libraries
 
 [Networkx](https://networkx.org/documentation/stable/reference/index.html)<br>
-[igraph](https://python.igraph.org/en/stable/analysis.html#clustering)
+[igraph](https://python.igraph.org/en/stable/analysis.html#clustering)<br>
+[Liitle Ball of Fur](https://little-ball-of-fur.readthedocs.io/en/latest/index.html)
