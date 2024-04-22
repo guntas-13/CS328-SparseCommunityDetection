@@ -97,6 +97,37 @@ def edge_random_sparsification(G, k):
         H.remove_edge(*edges[i])
     return H
 
+def edge_jaccard_sparsification(G, k):
+    edge_jaccard = nx.jaccard_coefficient(G)
+    edges = list(edge_jaccard)
+    edges = sorted(edges, key = lambda x: x[2], reverse = True)
+    G_sparse = set()
+    H = nx.Graph()
+    for edge in edges[:int(k * G.number_of_edges())]:
+        G_sparse.add(edge[:2])
+    
+    for node in G.nodes():
+        H.add_node(node)
+    
+    for edge in G_sparse:
+        H.add_edge(edge[0], edge[1])
+    return H
+
+def edge_L_Spar_sparsification(G, r):
+    G_sparse = set()
+    H = nx.Graph()
+    for node in G.nodes():
+        edges = list(G.edges(node))
+        edge_sim = nx.jaccard_coefficient(G, edges)
+        edges = sorted(edge_sim, key = lambda x: x[2], reverse = True)
+        for edge in edges[:int(len(edges)**r)]:
+            G_sparse.add(edge[:2])
+    for node in G.nodes():
+        H.add_node(node)
+    for edge in G_sparse:
+        H.add_edge(edge[0], edge[1])
+    return H
+
 def run_louvain(G):
     communities = community.community_louvain.best_partition(G)
     return communities
@@ -153,7 +184,7 @@ def plot_metrics_sparse(G, ground_truth, sparseFunctions, k_values):
     return SparseGraphs
 
 
-print("Function Description:\n1. plotRandomCommunity(G, community, title = None)\n2. get_community_dict(communities)\n3. get_communities(community_dict)\n4. edge_betweenness_sparsification(G, k)\n5. run_louvain(G)\n6. metrics(ground_truth, predicted)\n7. plot_metrics_sparse(G, ground_truth, sparseFunctions, k_values)\n\n")
+print("Function Description:\n1. plotRandomCommunity(G, community, title = None)\n2. get_community_dict(communities)\n3. get_communities(community_dict)\n4. run_louvain(G)\n5. metrics(ground_truth, predicted)\n6. plot_metrics_sparse(G, ground_truth, sparseFunctions, k_values)\n\nSampling Methods:1. edge_betweenness_sparsification(G, k)\n2. edge_random_sparsification(G, k)\n3. edge_jaccard_sparsification(G, k)\n4. edge_L_Spar_sparsification(G, r)\n\n")
 
 
 # DBLP GRAPH
