@@ -89,6 +89,14 @@ def edge_betweenness_sparsification(G, k):
         H.remove_edge(*edge)
     return H
 
+def edge_random_sparsification(G, k):
+    edges = list(G.edges())
+    np.random.shuffle(edges)
+    H = G.copy()
+    for i in range(int((1 - k) * G.number_of_edges())):
+        H.remove_edge(*edges[i])
+    return H
+
 def run_louvain(G):
     communities = community.community_louvain.best_partition(G)
     return communities
