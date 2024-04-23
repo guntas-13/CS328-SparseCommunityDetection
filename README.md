@@ -20,9 +20,17 @@ $$ \text{J}(i, j) = \frac{|\text{Adj}(i) \cap \text{Adj}(j)|}{|\text{Adj}(i) \cu
 
 ## RESULTS (As of Now)
 
+### Louvain Algorithm
+
 ![](https://github.com/guntas-13/CS328-SparseCommunityDetection/blob/main/Media/DBLP_ARI.png)
 ![](https://github.com/guntas-13/CS328-SparseCommunityDetection/blob/main/Media/DBLP_NMI.png)
 ![](https://github.com/guntas-13/CS328-SparseCommunityDetection/blob/main/Media/DBLP_Mod.png)
+
+### Label Propogation Algorithm
+
+![](https://github.com/guntas-13/CS328-SparseCommunityDetection/blob/main/Media/DBLP_ARI_LPA.png)
+![](https://github.com/guntas-13/CS328-SparseCommunityDetection/blob/main/Media/DBLP_NMI_LPA.png)
+![](https://github.com/guntas-13/CS328-SparseCommunityDetection/blob/main/Media/DBLP_Mod_LPA.png)
 
 ## God Funtion
 
