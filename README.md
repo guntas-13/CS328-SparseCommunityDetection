@@ -6,7 +6,7 @@ $$ Q(\mathcal{C}) = \frac{1}{2m} \sum*{C \in \mathcal{C}} \sum*{u \in C, v \in C
 
 ## Betweenness Centrality
 
-$$ \text{Betweenness}(e) = \sum\_{s, t \in V} \frac{|\sigma(s, t | e)}{|\sigma(s, t)} $$ <br>
+$$ \text{Betweenness}(e) = \sum\_{s, t \in V} \frac{\sigma(s, t | e)}{\sigma(s, t)} $$ <br>
 
 ## Jaccard Similarity
 
