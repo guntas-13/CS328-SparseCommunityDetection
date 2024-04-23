@@ -133,16 +133,42 @@ def run_louvain(G):
     communities = community.community_louvain.best_partition(G)
     return communities
 
+def run_lpa(G):
+    communities = nx.community.label_propagation.label_propagation_communities(G)
+    return communities
+
 def metrics(ground_truth, predicted):
     ari = adjusted_rand_score(list(ground_truth.values()), list(predicted.values()))
     nmi = normalized_mutual_info_score(list(ground_truth.values()), list(predicted.values()))
     return ari, nmi
 
+def modularity(G, communities):
+    m = nx.community.modularity(G, communities)
+    return m
+
 
 
 # MAJOR PLOT FUNCTIONS
-def plot_metrics_sparse(G, ground_truth, sparseFunctions, k_values):
+def plot_metrics_sparse(G, ground_truth, sparseFunctions, k_values, AlgoFunction, flag, networkName = None, AlgoName = None):
+    
+    """_summary_
+
+    Args:
+        G (nx.Graph): Original Graph
+        ground_truth (dictionary): dictionary mapping nodes to communities
+        sparseFunctions (list): list of tuples containing the name and the function to generate the sparse graph
+        k_values (list): list of values for the percentage of edges to retain
+        AlgoFunction (function): Community Detection Algorithm
+        flag (int): 0 if the output of the algorithm is a dictionary, 1 if the output is a list of communities
+        networkName (str, optional): Name of Network to go in the Title of the Plots. Defaults to None.
+        AlgoName (str, optional): Algorithm Name to go in the Title of the Plots. Defaults to None.
+
+    Returns:
+        list: List of Sparse Graphs (nx.Graph)
+    """
+    
     ari_values = [[0] * len(k_values) for _ in sparseFunctions]
+    modularity_values = [[0] * len(k_values) for _ in sparseFunctions]
     nmi_values = [[0] * len(k_values) for _ in sparseFunctions]
     names = [name for name, _ in sparseFunctions]
     SparseGraphs = [[0] * len(k_values) for _ in sparseFunctions]
@@ -150,8 +176,11 @@ def plot_metrics_sparse(G, ground_truth, sparseFunctions, k_values):
     for idx, (_, function) in enumerate(sparseFunctions):
         for i, k in enumerate(k_values):
             H = function(G, k)
-            predicted = run_louvain(H)
+            predicted = AlgoFunction(H)
+            if (flag == 1):
+                predicted = get_community_dict(predicted)
             ari, nmi = metrics(ground_truth, predicted)
+            modularity_values[idx][i] = modularity(H, get_communities(predicted))
             ari_values[idx][i] = ari
             nmi_values[idx][i] = nmi
             SparseGraphs[idx][i] = H
@@ -164,7 +193,20 @@ def plot_metrics_sparse(G, ground_truth, sparseFunctions, k_values):
             plt.annotate(f"{txt:.4f}", (i, ari_values[idx][i]))      
     plt.xlabel("Percentage Retention of Edges")
     plt.ylabel("ARI")
-    plt.title(f"ARI for Louvain vs k")
+    plt.title(f"ARI for {AlgoName} vs k for {networkName}")
+    plt.legend()
+    plt.grid()
+    plt.show()
+    
+    plt.figure(figsize = (12, 8))
+    plt.xticks(range(len(k_values)), [f"{100 * k}%" for k in k_values])
+    for idx in range(len(sparseFunctions)):
+        plt.plot(nmi_values[idx], label = names[idx], marker = "o")
+        for i, txt in enumerate(nmi_values[idx]):
+            plt.annotate(f"{txt:.4f}", (i, nmi_values[idx][i]))      
+    plt.xlabel("Percentage Retention of Edges")
+    plt.ylabel("NMI")
+    plt.title(f"NMI for {AlgoName} vs k for {networkName}")
     plt.legend()
     plt.grid()
     plt.show()
@@ -172,12 +214,14 @@ def plot_metrics_sparse(G, ground_truth, sparseFunctions, k_values):
     plt.figure(figsize = (12, 8))
     plt.xticks(range(len(k_values)), [f"{100 * k}%" for k in k_values])
     for idx in range(len(sparseFunctions)): 
-        plt.plot(nmi_values[idx], label = names[idx], marker = "o")
-        for i, txt in enumerate(nmi_values[idx]):
-            plt.annotate(f"{txt:.4f}", (i, nmi_values[idx][i]))
+        plt.plot(modularity_values[idx], label = names[idx], marker = "o")
+        for i, txt in enumerate(modularity_values[idx]):
+            plt.annotate(f"{txt:.4f}", (i, modularity_values[idx][i]))
+
+    plt.axhline(y = modularity(G, get_communities(ground_truth)), color = "black", linestyle = "--", label = "Original Graph")
     plt.xlabel("Percentage Retention of Edges")
-    plt.ylabel("NMI")
-    plt.title(f"NMI for Louvain vs k")
+    plt.ylabel("Modularity")
+    plt.title(f"Modularity for {AlgoName} vs k for {networkName}")
     plt.legend()
     plt.grid()
     plt.show()
@@ -185,7 +229,7 @@ def plot_metrics_sparse(G, ground_truth, sparseFunctions, k_values):
     return SparseGraphs
 
 
-print("Function Description:\n1. plotRandomCommunity(G, community, title = None)\n2. get_community_dict(communities)\n3. get_communities(community_dict)\n4. run_louvain(G)\n5. metrics(ground_truth, predicted)\n6. plot_metrics_sparse(G, ground_truth, sparseFunctions, k_values)\n\nSampling Methods:\n1. edge_betweenness_sparsification(G, k)\n2. edge_random_sparsification(G, k)\n3. edge_jaccard_sparsification(G, k)\n4. edge_L_Spar_sparsification(G, r)\n\n")
+print("Function Description:\n1. plotRandomCommunity(G, community, title = None)\n2. get_community_dict(communities)\n3. get_communities(community_dict)\n4. run_louvain(G)\n5. metrics(ground_truth, predicted)\n6. plot_metrics_sparse(G, ground_truth, sparseFunctions, k_values, AlgoFunction, flag, networkName = None, AlgoName = None)\n\nSampling Methods:\n1. edge_betweenness_sparsification(G, k)\n2. edge_random_sparsification(G, k)\n3. edge_jaccard_sparsification(G, k)\n4. edge_L_Spar_sparsification(G, r)\n\n")
 
 
 # DBLP GRAPH
