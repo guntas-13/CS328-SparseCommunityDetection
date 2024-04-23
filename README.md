@@ -1,17 +1,16 @@
 # SparseCommunityDetection
 
-$$ \text{Modularity} $$
+## Modularity
 
-$$ Q(\mathcal{C}) = \frac{1}{2m} \sum*{C \in \mathcal{C}} \sum*{u \in C, v \in C} \left( A\_{u, v} - \frac{d_u d_v}{2m} \right) $$ <br>
+$$ Q(\mathcal{C}) = \frac{1}{2m} \sum_{C \in \mathcal{C}} \sum_{u \in C, v \in C} \left( A\_{u, v} - \frac{d_u d_v}{2m} \right) $$ <br>
 
-$$ \text{Betweenness Centrality} $$
+## Betweenness Centrality
 
-$$ \text{Betweenness}(v) = \sum\_{s \neq v,t \neq v} \frac{|\sigma\*{s, t}(v)|}{|\sigma\_{s, t}|}$$ <br>
+$$ \text{Betweenness}(v) = \sum\_{s \neq v,t \neq v} \frac{|\sigma\_{s, t}(v)|}{|\sigma\_{s, t}|}$$ <br>
 
-$$ \text{Jaccard Similarity} $$
+## Jaccard Similarity
 
-$$ \texttt{An edge (i, j) is likely to lie within a cluster if} $$
-$$ \text{the vertices i and j have adjancency lists with high overlap} $$
+$$ \texttt{An edge (i, j) is likely to lie within a cluster if the vertices i and j have adjancency lists with high overlap} $$
 
 $$ \text{J}(i, j) = \frac{|\text{Adj}(i) \cap \text{Adj}(j)|}{|\text{Adj}(i) \cup \text{Adj}(j)|} $$
 
