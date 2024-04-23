@@ -78,7 +78,7 @@ def get_communities(community_dict):
     communities = defaultdict(list)
     for node, comm_id in community_dict.items():
         communities[comm_id].append(node)
-    return communities
+    return list(communities.values())
 
 
 # EVALUATION METRICS
