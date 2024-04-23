@@ -2,11 +2,11 @@
 
 ## Modularity
 
-$$ Q(\mathcal{C}) = \frac{1}{2m} \sum_{C \in \mathcal{C}} \sum_{u \in C, v \in C} \left( A\_{u, v} - \frac{d_u d_v}{2m} \right) $$ <br>
+$$ Q(\mathcal{C}) = \frac{1}{2m} \sum*{C \in \mathcal{C}} \sum*{u \in C, v \in C} \left( A\_{u, v} - \frac{d_u d_v}{2m} \right) $$ <br>
 
 ## Betweenness Centrality
 
-$$ \text{Betweenness}(v) = \sum\_{s \neq v,t \neq v} \frac{|\sigma\_{s, t}(v)|}{|\sigma\_{s, t}|}$$ <br>
+$$ \text{Betweenness}(e) = \sum\_{s, t \in V} \frac{|\sigma(s, t | e)}{|\sigma(s, t)} $$ <br>
 
 ## Jaccard Similarity
 
