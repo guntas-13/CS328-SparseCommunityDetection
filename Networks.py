@@ -5,6 +5,7 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import random
 from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score
 from latex import latexify
 latexify(columns = 2)
@@ -184,7 +185,7 @@ def plot_metrics_sparse(G, ground_truth, sparseFunctions, k_values):
     return SparseGraphs
 
 
-print("Function Description:\n1. plotRandomCommunity(G, community, title = None)\n2. get_community_dict(communities)\n3. get_communities(community_dict)\n4. run_louvain(G)\n5. metrics(ground_truth, predicted)\n6. plot_metrics_sparse(G, ground_truth, sparseFunctions, k_values)\n\nSampling Methods:1. edge_betweenness_sparsification(G, k)\n2. edge_random_sparsification(G, k)\n3. edge_jaccard_sparsification(G, k)\n4. edge_L_Spar_sparsification(G, r)\n\n")
+print("Function Description:\n1. plotRandomCommunity(G, community, title = None)\n2. get_community_dict(communities)\n3. get_communities(community_dict)\n4. run_louvain(G)\n5. metrics(ground_truth, predicted)\n6. plot_metrics_sparse(G, ground_truth, sparseFunctions, k_values)\n\nSampling Methods:\n1. edge_betweenness_sparsification(G, k)\n2. edge_random_sparsification(G, k)\n3. edge_jaccard_sparsification(G, k)\n4. edge_L_Spar_sparsification(G, r)\n\n")
 
 
 # DBLP GRAPH

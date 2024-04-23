@@ -1,5 +1,20 @@
 # SparseCommunityDetection
 
+## $$ \text{Modularity} $$
+
+### $$ Q(\mathcal{C}) = \frac{1}{2m} \sum*{C \in \mathcal{C}} \sum*{u \in C, v \in C} \left( A\_{u, v} - \frac{d_u d_v}{2m} \right) $$
+
+## $$ \text{Betweenness Centrality} $$
+
+### $$ \text{Betweenness}(v) = \sum*{s \neq v,t \neq v} \frac{|\sigma*{s, t}(v)|}{|\sigma\_{s, t}|}$$
+
+## $$ \text{Jaccard Similarity} $$
+
+$$ \texttt{An edge (i, j) is likely to lie within a cluster if} $$
+$$ \text{the vertices i and j have adjancency lists with high overlap} $$
+
+### $$ \text{J}(i, j) = \frac{|\text{Adj}(i) \cap \text{Adj}(j)|}{|\text{Adj}(i) \cup \text{Adj}(j)|} $$
+
 ![](https://github.com/guntas-13/CS328-SparseCommunityDetection/blob/main/Media/KarateGraph.png)
 ![](https://github.com/guntas-13/CS328-SparseCommunityDetection/blob/main/Media/Karate.gif)
 
