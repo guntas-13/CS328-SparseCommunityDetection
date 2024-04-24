@@ -5,8 +5,9 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score
 import random
+from cdlib import algorithms
+from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score
 # from latex import latexify
 # latexify(columns = 2)
 
@@ -78,7 +79,7 @@ def get_communities(community_dict):
     communities = defaultdict(list)
     for node, comm_id in community_dict.items():
         communities[comm_id].append(node)
-    return communities
+    return list(communities.values())
 
 
 # EVALUATION METRICS
@@ -129,29 +130,137 @@ def edge_L_Spar_sparsification(G, r):
         H.add_edge(edge[0], edge[1])
     return H
 
+def clustering_coeffs_edge_sampling(graph, sampling_ratio):
+    H = nx.Graph()
+    edge_cc_prod = []
+    edges = []
+    clustering_coeffs = nx.clustering(graph)
+    for edge in graph.edges():
+        edges.append(edge)
+        edge_cc_prod.append(clustering_coeffs[edge[0]]*clustering_coeffs[edge[1]])
+    indices = np.argsort(edge_cc_prod)[::-1]
+    sampled_edges = np.array(edges)[indices][: int(graph.number_of_edges()*sampling_ratio)]
+    H.add_edges_from(sampled_edges)
+    H.add_nodes_from(graph.nodes)
+    return H
+
+def metropolis_hastings_algorithm(graph:nx.Graph, sampling_ratio):
+    seed_node = np.random.choice(np.array(graph.nodes()))
+    current_node = seed_node
+    num_edges = 0
+    patience = 0
+    alpha = 0.3
+
+    H = nx.Graph()
+    while num_edges < int(graph.number_of_edges()*sampling_ratio):
+        if patience == 5:
+            current_node = np.random.choice(np.array(graph.nodes()))
+            patience = 0
+            alpha = alpha**1.2
+        neighbors = graph.neighbors(current_node)
+        new_node = np.random.choice(list(neighbors))
+        if not H.has_edge(current_node, new_node):
+            r = np.random.uniform(alpha, 1)
+            if r < (graph.degree(current_node)/graph.degree(new_node)):
+                H.add_edges_from([(current_node, new_node)])
+                current_node = new_node
+                num_edges += 1
+            else:
+                current_node = current_node
+        else:
+            current_node = current_node
+            patience += 1
+    
+    H.add_nodes_from(graph.nodes)
+    return H
+
+def effective_resistance_sampling_2(graph:nx.Graph, sampling_ratio):
+    list_sampled_edges = []
+    l = 0
+    for component in list(nx.connected_components(graph)):
+        subgraph = nx.subgraph(graph, component)
+        edges = np.array(subgraph.edges())
+        resistances = []
+        for i in range(edges.shape[0]):
+            resistances.append(nx.resistance_distance(subgraph, edges[i,0], edges[i,1]))
+        sorted_edges = edges[np.argsort(resistances)[::-1]]
+        list_sampled_edges.append(sorted_edges[:int(subgraph.number_of_edges()*sampling_ratio)])
+        l += int(subgraph.number_of_edges()*sampling_ratio)
+    sampled_edges = np.zeros(shape=(l, 2))
+    p = 0
+    for arr in list_sampled_edges:
+        sampled_edges[p: p+len(arr), :] = arr
+        p += len(arr)
+    H = nx.Graph()
+    H.add_edges_from(sampled_edges)
+    H.add_nodes_from(graph.nodes)
+    return H
+
 def run_louvain(G):
     communities = community.community_louvain.best_partition(G)
     return communities
+
+def run_lpa(G):
+    communities = nx.community.label_propagation.label_propagation_communities(G)
+    return communities
+
+def run_walktrap(G):
+    return algorithms.walktrap(G)
+
+def run_paris(G):
+    return algorithms.paris(G)
 
 def metrics(ground_truth, predicted):
     ari = adjusted_rand_score(list(ground_truth.values()), list(predicted.values()))
     nmi = normalized_mutual_info_score(list(ground_truth.values()), list(predicted.values()))
     return ari, nmi
 
+def modularity(G, communities):
+    m = nx.community.modularity(G, communities)
+    return m
+
+def clustering_coefficient(G):
+    return nx.average_clustering(G)
+
 
 
 # MAJOR PLOT FUNCTIONS
-def plot_metrics_sparse(G, ground_truth, sparseFunctions, k_values):
+def plot_metrics_sparse(G, ground_truth, sparseFunctions, k_values, AlgoFunction, flag, networkName = None, AlgoName = None):
+    
+    """_summary_
+
+    Args:
+        G (nx.Graph): Original Graph
+        ground_truth (dictionary): dictionary mapping nodes to communities
+        sparseFunctions (list): list of tuples containing the name and the function to generate the sparse graph
+        k_values (list): list of values for the percentage of edges to retain
+        AlgoFunction (function): Community Detection Algorithm
+        flag (int): 0 if the output of the algorithm is a dictionary, 1 if the output is a list of communities, 2 if the output is a community object
+        networkName (str, optional): Name of Network to go in the Title of the Plots. Defaults to None.
+        AlgoName (str, optional): Algorithm Name to go in the Title of the Plots. Defaults to None.
+
+    Returns:
+        list: List of Sparse Graphs (nx.Graph)
+    """
+    
     ari_values = [[0] * len(k_values) for _ in sparseFunctions]
+    modularity_values = [[0] * len(k_values) for _ in sparseFunctions]
     nmi_values = [[0] * len(k_values) for _ in sparseFunctions]
+    clust_coeff_values = [[0] * len(k_values) for _ in sparseFunctions]
     names = [name for name, _ in sparseFunctions]
     SparseGraphs = [[0] * len(k_values) for _ in sparseFunctions]
     
     for idx, (_, function) in enumerate(sparseFunctions):
         for i, k in enumerate(k_values):
             H = function(G, k)
-            predicted = run_louvain(H)
+            predicted = AlgoFunction(H)
+            if (flag == 1):
+                predicted = get_community_dict(predicted)
+            elif (flag == 2):
+                predicted = get_community_dict(predicted.communities)
             ari, nmi = metrics(ground_truth, predicted)
+            modularity_values[idx][i] = modularity(H, get_communities(predicted))
+            clust_coeff_values[idx][i] = clustering_coefficient(H)
             ari_values[idx][i] = ari
             nmi_values[idx][i] = nmi
             SparseGraphs[idx][i] = H
@@ -164,28 +273,73 @@ def plot_metrics_sparse(G, ground_truth, sparseFunctions, k_values):
             plt.annotate(f"{txt:.4f}", (i, ari_values[idx][i]))      
     plt.xlabel("Percentage Retention of Edges")
     plt.ylabel("ARI")
-    plt.title(f"ARI for Louvain vs k")
+    plt.title(f"ARI for {AlgoName} vs k for {networkName}")
     plt.legend()
     plt.grid()
+    plt.savefig(f"{AlgoName}_{networkName}_ARI.png")
+    plt.show()
+    
+    plt.figure(figsize = (12, 8))
+    plt.xticks(range(len(k_values)), [f"{100 * k}%" for k in k_values])
+    for idx in range(len(sparseFunctions)):
+        plt.plot(nmi_values[idx], label = names[idx], marker = "o")
+        for i, txt in enumerate(nmi_values[idx]):
+            plt.annotate(f"{txt:.4f}", (i, nmi_values[idx][i]))      
+    plt.xlabel("Percentage Retention of Edges")
+    plt.ylabel("NMI")
+    plt.title(f"NMI for {AlgoName} vs k for {networkName}")
+    plt.legend()
+    plt.grid()
+    plt.savefig(f"{AlgoName}_{networkName}_NMI.png")
     plt.show()
     
     plt.figure(figsize = (12, 8))
     plt.xticks(range(len(k_values)), [f"{100 * k}%" for k in k_values])
     for idx in range(len(sparseFunctions)): 
-        plt.plot(nmi_values[idx], label = names[idx], marker = "o")
-        for i, txt in enumerate(nmi_values[idx]):
-            plt.annotate(f"{txt:.4f}", (i, nmi_values[idx][i]))
+        plt.plot(modularity_values[idx], label = names[idx], marker = "o")
+        for i, txt in enumerate(modularity_values[idx]):
+            plt.annotate(f"{txt:.4f}", (i, modularity_values[idx][i]))
+
+    plt.axhline(y = modularity(G, get_communities(ground_truth)), color = "black", linestyle = "--", label = "Original Graph")
     plt.xlabel("Percentage Retention of Edges")
-    plt.ylabel("NMI")
-    plt.title(f"NMI for Louvain vs k")
+    plt.ylabel("Modularity")
+    plt.title(f"Modularity for {AlgoName} vs k for {networkName}")
     plt.legend()
     plt.grid()
+    plt.savefig(f"{AlgoName}_{networkName}_Modularity.png")
     plt.show()
     
-    return SparseGraphs
+    plt.figure(figsize = (12, 8))
+    plt.xticks(range(len(k_values)), [f"{100 * k}%" for k in k_values])
+    for idx in range(len(sparseFunctions)): 
+        plt.plot(clust_coeff_values[idx], label = names[idx], marker = "o")
+        for i, txt in enumerate(clust_coeff_values[idx]):
+            plt.annotate(f"{txt:.4f}", (i, clust_coeff_values[idx][i]))
 
+    plt.axhline(y = clustering_coefficient(G), color = "black", linestyle = "--", label = "Original Graph")
+    plt.xlabel("Percentage Retention of Edges")
+    plt.ylabel("Clustering Coefficient")
+    plt.title(f"Clustering Coefficient for {AlgoName} vs k for {networkName}")
+    plt.legend()
+    plt.grid()
+    plt.savefig(f"{AlgoName}_{networkName}_Clustering_Coefficients.png")
+    plt.show()
+    
+    return SparseGraphs, ari_values, nmi_values, modularity_values, clust_coeff_values
 
-print("Function Description:\n1. plotRandomCommunity(G, community, title = None)\n2. get_community_dict(communities)\n3. get_communities(community_dict)\n4. run_louvain(G)\n5. metrics(ground_truth, predicted)\n6. plot_metrics_sparse(G, ground_truth, sparseFunctions, k_values)\n\nSampling Methods:\n1. edge_betweenness_sparsification(G, k)\n2. edge_random_sparsification(G, k)\n3. edge_jaccard_sparsification(G, k)\n4. edge_L_Spar_sparsification(G, r)\n\n")
+def createDataFrames(ari_values, nmi_values, modularity_values, clust_coeff_values, k_values, sparseFunctionNames, algorithm, dataset):
+    ari_df = pd.DataFrame(ari_values, columns = k_values, index = sparseFunctionNames)
+    nmi_df = pd.DataFrame(nmi_values, columns = k_values, index = sparseFunctionNames)
+    modularity_df = pd.DataFrame(modularity_values, columns = k_values, index = sparseFunctionNames)
+    clust_coeff_df = pd.DataFrame(clust_coeff_values, columns = k_values, index = sparseFunctionNames)
+    
+    ari_df.to_csv(f"{algorithm}_{dataset}_ARI.csv")
+    nmi_df.to_csv(f"{algorithm}_{dataset}_NMI.csv")
+    modularity_df.to_csv(f"{algorithm}_{dataset}_Modularity.csv")
+    clust_coeff_df.to_csv(f"{algorithm}_{dataset}_Clustering_Coefficients.csv")
+    print("DataFrames Created Successfully")
+
+print("Function Description:\n1. plotRandomCommunity(G, community, title = None)\n2. get_community_dict(communities)\n3. get_communities(community_dict)\n4. metrics(ground_truth, predicted)\n5. plot_metrics_sparse(G, ground_truth, sparseFunctions, k_values, AlgoFunction, flag, networkName = None, AlgoName = None)\n6. createDataFrames(ari_values, nmi_values, modularity_values, clust_coeff_values, k_values, sparseFunctionNames, algorithm, dataset)\n\nSampling Methods:\n1. edge_betweenness_sparsification(G, k)\n2. edge_random_sparsification(G, k)\n3. edge_jaccard_sparsification(G, k)\n4. edge_L_Spar_sparsification(G, r)\n5. clustering_coeffs_edge_sampling(G, k)\n6. metropolis_hastings_algorithm(G, r)\n7. effective_resistance_sampling_2(G, r)\n\nCommunity Detection Algorithms:\n1. run_louvain(G)\n2. run_lpa(G)\n3. run_walktrap(G)\n4. run_infomap(G)\n\n")
 
 
 # DBLP GRAPH
