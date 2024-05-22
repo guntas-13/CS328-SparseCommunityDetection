@@ -1,6 +1,6 @@
 # SparseCommunityDetection
 
-![](https://github.com/guntas-13/CS328-SparseCommunityDetection/blob/main/Media/Report.png)
+![](https://github.com/guntas-13/CS328-SparseCommunityDetection/blob/main/Media/ReportMain.png)
 
 [Final Report](https://github.com/guntas-13/CS328-SparseCommunityDetection/blob/main/CS328Project.pdf)
 
@@ -8,7 +8,7 @@
 
 ## Modularity
 
-$$ Q(\mathcal{C}) = \frac{1}{2m} \sum_{C \in \mathcal{C}} \sum_{u \in C, v \in C} \left( A\_{u, v} - \frac{d_u d_v}{2m} \right) $$ <br>
+$$ Q(\mathcal{C}) = \frac{1}{2m} \sum*{C \in \mathcal{C}} \sum*{u \in C, v \in C} \left( A\_{u, v} - \frac{d_u d_v}{2m} \right) $$ <br>
 
 ## Betweenness Centrality
 
