@@ -2,7 +2,8 @@
 
 ![](https://github.com/guntas-13/CS328-SparseCommunityDetection/blob/main/Media/Report.png)
 
-[Final Report](https://github.com/guntas-13/CS328-SparseCommunityDetection/blob/main/CS328ProjectSparsifyingGraphs.pdf)
+[Final Report](https://github.com/guntas-13/CS328-SparseCommunityDetection/blob/main/CS328Project.pdf)
+
 [Final Presentation](https://github.com/guntas-13/CS328-SparseCommunityDetection/blob/main/CS328FinalPresentation.pdf)
 
 ## Modularity
